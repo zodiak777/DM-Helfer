@@ -47,6 +47,38 @@ def load_pre_prompt(path="pre_prompt.txt"):
 PRE_PROMPT = load_pre_prompt()
 logger.debug('Pre prompt loaded')
 
+current_weather = "Unbestimmt"
+weather_roll_date = None
+
+WEATHER_TABLE = {
+    1: "glühende Hitze",
+    2: "sehr heiße Sonne",
+    3: "heiße Temperaturen",
+    4: "warm und sonnig",
+    5: "angenehm warm",
+    6: "milder Sonnenschein",
+    7: "warmer Sonnenschein",
+    8: "leichte Bewölk",
+    9: "bewölkt",
+    10: "wolkig",
+    11: "leichter Regen",
+    12: "nieselnder Regen",
+    13: "mäßiger Regen",
+    14: "anhaltender Regen",
+    15: "starker Regen",
+    16: "Regen mit starkem Wind",
+    17: "Gewitter",
+    18: "heftiges Gewitter",
+    19: "Platzregen",
+    20: "extremer Platzregen",
+}
+
+def roll_weather():
+    roll = random.randint(1, 20)
+    desc = WEATHER_TABLE.get(roll, "Unbekannt")
+    logger.info("Weather roll %s => %s", roll, desc)
+    return desc
+
 @client.event
 async def on_ready():
     logger.info('Logged in as %s', client.user)
@@ -55,8 +87,16 @@ async def on_ready():
 @tasks.loop(hours=1)
 async def hourly_post():
     logger.debug('hourly_post triggered')
-    current_hour = datetime.now().hour
-    if 1 <= current_hour <= 8:
+    now = datetime.now()
+    global current_weather, weather_roll_date
+
+    # Roll daily weather at 8 AM
+    if now.hour == 8 and (weather_roll_date != now.date()):
+        current_weather = roll_weather()
+        weather_roll_date = now.date()
+        logger.info('Daily weather determined: %s', current_weather)
+
+    if 1 <= now.hour <= 8:
         logger.debug('Posting disabled during quiet hours')
         return
 
@@ -84,7 +124,7 @@ async def hourly_post():
         return
 
     current_time = datetime.now().strftime('%H:%M')
-    prompt = f"{PRE_PROMPT} Es ist aktuell {current_time} Uhr."
+    prompt = f"{PRE_PROMPT} Es ist aktuell {current_time} Uhr. Das Wetter heute: {current_weather}."
     logger.debug('Prompt sent to OpenAI: %s', prompt)
 
     try:
