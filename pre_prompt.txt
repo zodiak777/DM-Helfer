@@ -31,7 +31,6 @@ Spielercharaktere:
 - Casmir – Tiefling, Barde
 - Bella Foggrove – Halbling, Druide
 - Reiki – Human, Rogue
-- ZeRonin – Halbling, Rogue
 
 Nicht-Spielercharaktere:
 - Agatha Kleinschürz:  Die mütterliche Halblingsköchin der Festung versorgt alle mit Keksen, guter Laune und einem scharfen Blick für schmutzige Hände und Unsinn. Ein liebevoller Tadel von ihr wirkt oft mehr als jeder Befehl und meist gibt’s trotzdem noch einen Keks dazu.
