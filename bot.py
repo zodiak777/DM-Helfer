@@ -78,6 +78,7 @@ NPC_LIST = [
     "Brumir Goldbraid",
     "Nithra Molumir",
     "Faelwyn Silberblatt",
+    "Vaelion",
 ]
 logger.debug('Discord client initialisiert')
 
