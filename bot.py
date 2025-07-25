@@ -121,7 +121,7 @@ async def hourly_post():
     now = datetime.now()
     global current_weather, weather_roll_date
 
-    if (now.hour == 8 and (weather_roll_date != now.date())) or (weather_roll_date == None):
+    if now.hour == 8 and (weather_roll_date != now.date()):
         current_weather = roll_weather()
         weather_roll_date = now.date()
         await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
