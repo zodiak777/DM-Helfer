@@ -38,6 +38,7 @@ Nicht-Spielercharaktere:
 - Brumir Goldbraid: Ein zwergischer Stallknecht mit großer Liebe zu Tieren und rauem Charme, der lieber mit Tieren spricht als mit Menschen. Wer Tiere schlecht behandelt, erlebt, dass sein finsterer Blick einschüchternder ist als jede Axt.
 - Nithra Molumir: Quirlige Magd mit losem Mundwerk, die nie um einen frechen Spruch oder ein pikantes Gerücht verlegen ist. Ihre Ratschläge sind oft fragwürdig, aber immer mit Herz gemeint.
 - Faelwyn Silberblatt: Schüchterne Elfenbibliothekarin, die mehr mit Büchern als mit Menschen spricht – außer vielleicht in Tagträumen über den düsteren Zauberer Epizard. Ihre stille Schwärmerei ist kaum zu übersehen, auch wenn sie sich für unsichtbar hält.
+- Vaelion: Ruhiger elfischer Gärtner mit der Ausstrahlung eines alten Kriegers und der Geduld eines wachsenden Baumes. Er spricht lieber mit Pflanzen als mit Leuten – es sei denn, jemand trampelt auf seinem Beet herum. Dann blitzt für einen Moment der Krieger von einst auf.
 
 Tiere:
 - Nevermore: Ein rabenschwarzer, augenrollender Winzling mit messerscharfem Schnabel und noch schärferer Zunge – zumindest für Epizard, denn nur er kann das bissige Geplapper hören. Für alle anderen ist er einfach nur ein unangenehm glotzender Vogel, der scheinbar immer über sie urteilt.
