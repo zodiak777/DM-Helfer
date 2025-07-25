@@ -72,6 +72,18 @@ WEATHER_TABLE = {
     20: "extremer Platzregen",
 }
 
+NPC_LIST = [
+    "Agatha Kleinschürz",
+    "Bwayes O’tamu",
+    "Brumir Goldbraid",
+    "Nithra Molumir",
+    "Faelwyn Silberblatt",
+]
+logger.debug('Discord client initialisiert')
+
+def get_random_npc():
+    return random.choice(NPC_LIST)
+
 def roll_weather():
     roll = random.randint(1, 20)
     desc = WEATHER_TABLE.get(roll, "Unbekannt")
@@ -87,7 +99,8 @@ async def on_ready():
 @tree.command(name="force", description="Sofort eine Nachricht posten")
 async def force_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
-    await generate_and_send('Schreibe eine Kurze nachricht für den Discord Channel.')
+    npc = get_random_npc()
+    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.')
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
 async def generate_and_send(input):
@@ -149,8 +162,9 @@ async def hourly_post():
     except Exception:
         logger.error('Error fetching channel history', exc_info=True)
         return
-
-    await generate_and_send('Schreibe eine Kurze nachricht für den Discord Channel.')
+        
+    npc = get_random_npc()
+    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.')
 
 if __name__ == '__main__':
     logger.info('Starting Discord bot')
