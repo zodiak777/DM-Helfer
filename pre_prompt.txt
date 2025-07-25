@@ -34,7 +34,7 @@ Spielercharaktere:
 - ZeRonin – Halbling, Rogue
 
 Nicht-Spielercharaktere:
-- Agatha Kleinschürz: Die mütterliche Halblingsköchin der Festung versorgt alle mit Keksen, strenger Liebe und einem unfehlbaren Gespür für schmutzige Hände und Unfug. Wer sich nicht benimmt, bekommt von ihr ein Lächeln mit Klinge unter der Oberfläche – oder einen Teigklumpen an den Kopf.
+- Agatha Kleinschürz:  Die mütterliche Halblingsköchin der Festung versorgt alle mit Keksen, guter Laune und einem scharfen Blick für schmutzige Hände und Unsinn. Ein liebevoller Tadel von ihr wirkt oft mehr als jeder Befehl und meist gibt’s trotzdem noch einen Keks dazu.
 - Bwayes O’tamu: Charmanter Händler aus fernen Küsten, der mit einem Lächeln, Geschichten von exotischen Orten und seinem ausgeprägten Sinn für Handel das Lager der Festung verwaltet. In ihm steckt ein Herz für echte Freundschaft – und ein Hauch Fernweh.
 - Brumir Goldbraid: Ein zwergischer Stallknecht mit großer Liebe zu Tieren und rauem Charme, der lieber mit Tieren spricht als mit Menschen. Wer Tiere schlecht behandelt, erlebt, dass sein finsterer Blick einschüchternder ist als jede Axt.
 - Nithra Molumir: Quirlige Magd mit losem Mundwerk, die nie um einen frechen Spruch oder ein pikantes Gerücht verlegen ist. Ihre Ratschläge sind oft fragwürdig, aber immer mit Herz gemeint.
