@@ -72,7 +72,7 @@ WEATHER_TABLE = {
     5: "angenehm warm",
     6: "milder Sonnenschein",
     7: "warmer Sonnenschein",
-    8: "leichte Bewölk",
+    8: "leicht Bewölkt",
     9: "bewölkt",
     10: "wolkig",
     11: "leichter Regen",
