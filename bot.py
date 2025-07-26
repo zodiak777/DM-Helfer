@@ -34,6 +34,7 @@ openai.api_key = OPENAI_API_KEY
 logger.debug('OpenAI API key geladen')
 
 intents = discord.Intents.default()
+intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 logger.debug('Discord client initialisiert')
@@ -97,6 +98,22 @@ async def on_ready():
     await tree.sync()
     hourly_post.start()
 
+@client.event
+async def on_message(message: discord.Message):
+    if message.author == client.user:
+        return
+    if message.author.bot:
+        return
+#    if hasattr(message.author, "roles") and any(role.name == "Weltenschmied" for role in message.author.roles):
+#        return
+    if message.channel.id != CHANNEL_ID:
+        return
+    content_lower = message.content.lower()
+    for npc in NPC_LIST:
+        if npc.lower() in content_lower:
+            await reply_as_npc(npc, message.content)
+            break
+
 @tree.command(name="force", description="Sofort eine Nachricht posten")
 async def force_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
@@ -128,6 +145,14 @@ async def generate_and_send(input):
         logger.info('Message an Channel %s gesendet.', channel.id)
     except Exception:
         logger.error('Fehler beim Nachricht senden: ', exc_info=True)
+
+async def reply_as_npc(npc_name: str, user_message: str):
+    logger.info('Generiere Antwort als %s', npc_name)
+    input_text = (
+        f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
+        f"Nachricht: {user_message}"
+    )
+    await generate_and_send(input_text)
 
 @tasks.loop(hours=1)
 async def hourly_post():
