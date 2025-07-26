@@ -50,11 +50,11 @@ def load_pre_prompt(path="prompt_parts"):
             
     parts = []
     parts.append(read_file("core.txt"))
-    parts.append("Spielercharaktere:\n" + read_file("spieler"))
-    parts.append("Nicht-Spielercharaktere:\n" + read_file("npcs"))
-    parts.append("Tiere:\n" + read_file("tiere"))
+    parts.append("Spielercharaktere:\n" + read_file("spieler.txt"))
+    parts.append("Nicht-Spielercharaktere:\n" + read_file("npcs.txt"))
+    parts.append("Tiere:\n" + read_file("tiere.txt"))
     section_title = "Gegebene Weltinformationen (fest, nicht erweitern!):"
-    parts.append(section_title + "\n" + read_file("welt"))
+    parts.append(section_title + "\n" + read_file("welt.txt"))
 
     return "\n\n".join(parts)
 
