@@ -146,11 +146,22 @@ async def generate_and_send(input):
     except Exception:
         logger.error('Fehler beim Nachricht senden: ', exc_info=True)
 
-async def reply_as_npc(npc_name: str, user_message: str):
+async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
+    messages = []
+    async for msg in channel.history(limit=limit, before=before, oldest_first=True):
+        if msg.author == client.user or msg.author.bot:
+            continue
+        messages.append(f"{msg.author.display_name}: {msg.content}")
+    return "\n".join(messages)
+
+async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     logger.info('Generiere Antwort als %s', npc_name)
+    channel = client.get_channel(CHANNEL_ID)
+    context = await get_recent_messages(channel, limit=10, before=trigger_message)
     input_text = (
+        f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
-        f"Nachricht: {user_message}"
+        f"Nachricht: {trigger_message.content}"
     )
     await generate_and_send(input_text)
 
