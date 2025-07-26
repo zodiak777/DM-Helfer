@@ -88,11 +88,11 @@ WEATHER_TABLE = {
 }
 
 NPC_LIST = [
-    "Agatha Kleinschürz",
-    "Bwayes O’tamu",
-    "Brumir Goldbraid",
-    "Nithra Molumir",
-    "Faelwyn Silberblatt",
+    "Agatha",
+    "Bwayes",
+    "Brumir",
+    "Nithra",
+    "Faelwyn",
     "Vaelion",
 ]
 logger.debug('Discord client initialisiert')
@@ -114,7 +114,6 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
-    print(message.content)
     if message.author == client.user:
         return
     if message.author.bot:
