@@ -132,12 +132,31 @@ async def on_message(message: discord.Message):
 async def force_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     npc = get_random_npc()
-    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.')
+    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
-async def generate_and_send(input):
+def load_npc_extension(npc_name: str, path: str = os.path.join("prompt_parts", "npcs")) -> str:
+    """Lade erweiterte Informationen zu einem NPC, falls vorhanden."""
+    base = npc_name.split()[0].lower()
+    candidates = [f"{base}_erweitert.txt", f"{base}_erweitert"]
+    for fname in candidates:
+        full_path = os.path.join(path, fname)
+        if os.path.exists(full_path):
+            logger.debug("Lese NPC-Erweiterung %s", full_path)
+            with open(full_path, "r", encoding="utf-8") as f:
+                return f.read().strip()
+    logger.debug("Keine NPC-Erweiterung für %s gefunden", npc_name)
+    return ""
+
+async def generate_and_send(input, npc_name: str | None = None):
     current_time = datetime.now().strftime('%H:%M')
-    prompt = f"{PRE_PROMPT} Es ist aktuell {current_time} Uhr. Das Wetter heute: {current_weather}."
+    parts = [PRE_PROMPT]
+    if npc_name:
+        extra = load_npc_extension(npc_name)
+        if extra:
+            parts.append(extra)
+    parts.append(f"Es ist aktuell {current_time} Uhr. Das Wetter heute: {current_weather}.")
+    prompt = "\n\n".join(parts)
     logger.debug('Prompt an OpenAI gesendet: %s', prompt)
     channel = client.get_channel(CHANNEL_ID)
 
@@ -177,7 +196,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
         f"Nachricht: {trigger_message.content}"
     )
-    await generate_and_send(input_text)
+    await generate_and_send(input_text, npc_name)
 
 @tasks.loop(hours=1)
 async def hourly_post():
@@ -215,7 +234,7 @@ async def hourly_post():
         return
         
     npc = get_random_npc()
-    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.')
+    await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
 if __name__ == '__main__':
     logger.info('Starting Discord bot')
