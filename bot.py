@@ -111,7 +111,7 @@ async def on_message(message: discord.Message):
     content_lower = message.content.lower()
     for npc in NPC_LIST:
         if npc.lower() in content_lower:
-            await reply_as_npc(npc, message.content)
+            await reply_as_npc(npc, message)
             break
 
 @tree.command(name="force", description="Sofort eine Nachricht posten")
