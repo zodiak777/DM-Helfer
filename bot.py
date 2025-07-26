@@ -97,6 +97,21 @@ NPC_LIST = [
 ]
 logger.debug('Discord client initialisiert')
 
+user_list = {
+    "zodiak6610": "Spielleiter",
+    "delailajana": "Bella",
+    "epimetheus.": "Epizard",
+    "dewarr1": "Rashar",
+    "fritzifitzgerald.": "Fritzi",
+    "pinkdevli692": "Joanne",
+    "itsamereiki": "Reiki",
+    "flohoehoe": "Casmir",
+    "spielhorst": "Horst",
+    "tibolonius": "Vex",
+    ".wolfgrimm": "Katazur",
+    "DM-Helfer#7090": "DM-Helfer"
+}
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
@@ -182,8 +197,7 @@ async def generate_and_send(input, npc_name: str | None = None):
 async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
     messages = []
     async for msg in channel.history(limit=limit, before=before, oldest_first=False):
-        print(msg.content)
-        messages.append(f"{msg.author}: {msg.content}")
+        messages.append(f"{user_list[str(msg.author)]}: {msg.content}")
         messages.reverse()
     return "\n".join(messages)
 
@@ -194,7 +208,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     input_text = (
         f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
-        f"Nachricht: {trigger_message.content}"
+        f"Nachricht von {user_list[str(trigger_message.author)]}: {trigger_message.content}"
     )
     print(input_text)
     await generate_and_send(input_text, npc_name)
