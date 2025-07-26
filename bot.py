@@ -47,7 +47,7 @@ def load_pre_prompt(path="prompt_parts"):
         logger.debug("Lese %s", full_path)
         with open(full_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-            
+
     parts = []
     parts.append(read_file("core.txt"))
     parts.append("Spielercharaktere:\n" + read_file("spieler.txt"))
@@ -181,10 +181,10 @@ async def generate_and_send(input, npc_name: str | None = None):
 
 async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
     messages = []
-    async for msg in channel.history(limit=limit, before=before, oldest_first=True):
-        if msg.author == client.user or msg.author.bot:
-            continue
-        messages.append(f"{msg.author.display_name}: {msg.content}")
+    async for msg in channel.history(limit=limit, before=before, oldest_first=False):
+        print(msg.content)
+        messages.append(f"{msg.author}: {msg.content}")
+        messages.reverse()
     return "\n".join(messages)
 
 async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
@@ -196,6 +196,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
         f"Nachricht: {trigger_message.content}"
     )
+    print(input_text)
     await generate_and_send(input_text, npc_name)
 
 @tasks.loop(hours=1)
@@ -232,7 +233,7 @@ async def hourly_post():
     except Exception:
         logger.error('Error fetching channel history', exc_info=True)
         return
-        
+
     npc = get_random_npc()
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
