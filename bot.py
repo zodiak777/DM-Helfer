@@ -39,10 +39,24 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 logger.debug('Discord client initialisiert')
 
-def load_pre_prompt(path="pre_prompt.txt"):
-    logger.debug('Lade pre prompt von %s', path)
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read().strip()
+def load_pre_prompt(path="prompt_parts"):
+    logger.debug("Lade pre prompt aus Ordner %s", path)
+
+    def read_file(filename):
+        full_path = os.path.join(path, filename)
+        logger.debug("Lese %s", full_path)
+        with open(full_path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+            
+    parts = []
+    parts.append(read_file("core.txt"))
+    parts.append("Spielercharaktere:\n" + read_file("spieler"))
+    parts.append("Nicht-Spielercharaktere:\n" + read_file("npcs"))
+    parts.append("Tiere:\n" + read_file("tiere"))
+    section_title = "Gegebene Weltinformationen (fest, nicht erweitern!):"
+    parts.append(section_title + "\n" + read_file("welt"))
+
+    return "\n\n".join(parts)
 
 PRE_PROMPT = load_pre_prompt()
 logger.debug('Pre prompt geladen')
