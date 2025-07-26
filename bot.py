@@ -132,7 +132,6 @@ def roll_weather():
 
 @client.event
 async def on_ready():
-    logger.info('Eingeloggt als %s', client.user)
     await tree.sync()
     hourly_post.start()
 
