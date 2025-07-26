@@ -198,7 +198,7 @@ async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, bef
     messages = []
     async for msg in channel.history(limit=limit, before=before, oldest_first=False):
         messages.append(f"{user_list[str(msg.author)]}: {msg.content}")
-        messages.reverse()
+    messages.reverse()
     return "\n".join(messages)
 
 async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
