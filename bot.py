@@ -133,8 +133,8 @@ async def on_message(message: discord.Message):
         return
     if message.author.bot:
         return
-#    if hasattr(message.author, "roles") and any(role.name == "Weltenschmied" for role in message.author.roles):
-#        return
+    if hasattr(message.author, "roles") and any(role.name == "Weltenschmied" for role in message.author.roles):
+        return
     if message.channel.id != CHANNEL_ID:
         return
     content_lower = message.content.lower()
