@@ -104,7 +104,6 @@ NPC_LIST = [
     "Faelwyn",
     "Vaelion",
 ]
-logger.debug('Discord client initialisiert')
 
 user_list = {
     "zodiak6610": "Spielleiter",
