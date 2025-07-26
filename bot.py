@@ -210,7 +210,6 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
         f"Nachricht von {user_list[str(trigger_message.author)]}: {trigger_message.content}"
     )
-    print(input_text)
     await generate_and_send(input_text, npc_name)
 
 @tasks.loop(hours=1)
