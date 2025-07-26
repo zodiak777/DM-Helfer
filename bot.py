@@ -25,9 +25,18 @@ CHANNEL_ID = os.getenv('CHANNEL_ID')
 
 logger.debug("Env vars geladen: CHANNEL_ID=%s", CHANNEL_ID)
 
+if DISCORD_TOKEN is None:
+    logger.error('DISCORD_TOKEN environment variable nicht gesetzt')
+    raise RuntimeError('DISCORD_TOKEN environment variable nicht gesetzt')
+
+if OPENAI_API_KEY is None:
+    logger.error('OPENAI_API_KEY environment variable nicht gesetzt')
+    raise RuntimeError('OPENAI_API_KEY environment variable nicht gesetzt')
+    
 if CHANNEL_ID is None:
     logger.error('CHANNEL_ID environment variable nicht gesetzt')
     raise RuntimeError('CHANNEL_ID environment variable nicht gesetzt')
+    
 CHANNEL_ID = int(CHANNEL_ID)
 
 openai.api_key = OPENAI_API_KEY
