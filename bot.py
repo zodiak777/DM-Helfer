@@ -192,18 +192,22 @@ def edit_npc(name):
     long_text = details.get(name, "")
     lines = PROMPT_DATA.get("npcs", "").splitlines()
     short_text = ""
+    index = None
+    full_name = name
     for i, line in enumerate(lines):
-        if line.startswith(name + ":"):
-            short_text = line.split(":", 1)[1].strip()
+        if ":" not in line:
+            continue
+        entry_name, desc = line.split(":", 1)
+        if entry_name.split()[0] == name:
+            short_text = desc.strip()
             index = i
+            full_name = entry_name
             break
-    else:
-        index = None
     if request.method == "POST":
         short_new = request.form.get("short", "").strip()
         long_new = request.form.get("long", "").strip()
         if index is not None:
-            lines[index] = f"{name}: {short_new}"
+            lines[index] = f"{full_name}: {short_new}"
         PROMPT_DATA["npcs"] = "\n".join(lines)
         details[name] = long_new
         PROMPT_DATA["npc_details"] = details
@@ -222,7 +226,12 @@ def edit_npc(name):
 def delete_npc(name):
     details = PROMPT_DATA.get("npc_details", {})
     details.pop(name, None)
-    lines = [l for l in PROMPT_DATA.get("npcs", "").splitlines() if not l.startswith(name + ":")]
+    updated_lines = []
+    for line in PROMPT_DATA.get("npcs", "").splitlines():
+        entry_name = line.split(":", 1)[0]
+        if entry_name.split()[0] != name:
+            updated_lines.append(line)
+    lines = updated_lines
     PROMPT_DATA["npcs"] = "\n".join(lines)
     PROMPT_DATA["npc_details"] = details
     save_prompt_data(PROMPT_DATA)
