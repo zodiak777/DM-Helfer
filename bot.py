@@ -3,11 +3,14 @@ import random
 import logging
 import json
 from datetime import datetime
+from functools import wraps
+from threading import Thread
 from dotenv import load_dotenv
 import openai
 import discord
 from discord.ext import tasks
 from discord import app_commands
+from flask import Flask, request, session, redirect, url_for, render_template_string
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +26,9 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+WEB_USERNAME = os.getenv('WEB_USERNAME')
+WEB_PASSWORD = os.getenv('WEB_PASSWORD')
+FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'secret')
 
 logger.debug("Env vars geladen: CHANNEL_ID=%s", CHANNEL_ID)
 
@@ -38,6 +44,10 @@ if CHANNEL_ID is None:
     logger.error('CHANNEL_ID environment variable nicht gesetzt')
     raise RuntimeError('CHANNEL_ID environment variable nicht gesetzt')
     
+if WEB_USERNAME is None or WEB_PASSWORD is None:
+    logger.error('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
+    raise RuntimeError('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
+    
 CHANNEL_ID = int(CHANNEL_ID)
 
 openai.api_key = OPENAI_API_KEY
@@ -49,10 +59,17 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 logger.debug('Discord client initialisiert')
 
+app = Flask(__name__)
+app.secret_key = FLASK_SECRET_KEY
+
 def load_prompt_data(path="prompt_data.json"):
     logger.debug("Lade Prompt-Daten aus %s", path)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+        
+def save_prompt_data(data: dict, path="prompt_data.json"):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 def build_pre_prompt(data: dict) -> str:
     parts = [
@@ -65,8 +82,12 @@ def build_pre_prompt(data: dict) -> str:
     parts.append(section_title + "\n" + data.get("welt", ""))
     return "\n\n".join(parts)
 
-PROMPT_DATA = load_prompt_data()
-PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
+def refresh_data():
+    global PROMPT_DATA, PRE_PROMPT
+    PROMPT_DATA = load_prompt_data()
+    PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
+
+refresh_data()
 logger.debug('Pre prompt geladen')
 
 current_weather = "Unbestimmt"
@@ -119,6 +140,126 @@ user_list = {
     "DM-Helfer#7090": "DM-Helfer"
 }
 
+def login_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return func(*args, **kwargs)
+    return wrapper
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form.get("username") == WEB_USERNAME and request.form.get("password") == WEB_PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("npc_list"))
+    return render_template_string(
+        """
+        <form method='post'>
+            <input name='username' placeholder='Username'>
+            <input name='password' type='password' placeholder='Password'>
+            <button type='submit'>Login</button>
+        </form>
+        """
+    )
+
+@app.route("/")
+@login_required
+def npc_list():
+    all_npcs = sorted(PROMPT_DATA.get("npc_details", {}).keys())
+    return render_template_string(
+        """
+        <h1>NPCs</h1>
+        <ul>
+        {% for npc in npcs %}
+            <li>{{npc}} <a href='{{url_for("edit_npc", name=npc)}}'>Bearbeiten</a> <a href='{{url_for("delete_npc", name=npc)}}'>Löschen</a></li>
+        {% endfor %}
+        </ul>
+        <a href='{{url_for("add_npc")}}'>Neuen NPC anlegen</a>
+        """,
+        npcs=all_npcs,
+    )
+
+@app.route("/add", methods=["GET", "POST"])
+@login_required
+def add_npc():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        short = request.form.get("short", "").strip()
+        long = request.form.get("long", "").strip()
+        if name and short:
+            details = PROMPT_DATA.setdefault("npc_details", {})
+            details[name] = long
+            lines = PROMPT_DATA.get("npcs", "").splitlines()
+            lines.append(f"{name}: {short}")
+            PROMPT_DATA["npcs"] = "\n".join(lines)
+            save_prompt_data(PROMPT_DATA)
+            refresh_data()
+            return redirect(url_for("npc_list"))
+    return render_template_string(
+        """
+        <h1>Neuen NPC erstellen</h1>
+        <form method='post'>
+            Name:<br><input name='name'><br>
+            Kurzbeschreibung:<br><textarea name='short'></textarea><br>
+            Lange Beschreibung:<br><textarea name='long'></textarea><br>
+            <button type='submit'>Speichern</button>
+        </form>
+        """
+    )
+
+@app.route("/edit/<name>", methods=["GET", "POST"])
+@login_required
+def edit_npc(name):
+    details = PROMPT_DATA.get("npc_details", {})
+    long_text = details.get(name, "")
+    lines = PROMPT_DATA.get("npcs", "").splitlines()
+    short_text = ""
+    for i, line in enumerate(lines):
+        if line.startswith(name + ":"):
+            short_text = line.split(":", 1)[1].strip()
+            index = i
+            break
+    else:
+        index = None
+    if request.method == "POST":
+        short_new = request.form.get("short", "").strip()
+        long_new = request.form.get("long", "").strip()
+        if index is not None:
+            lines[index] = f"{name}: {short_new}"
+        PROMPT_DATA["npcs"] = "\n".join(lines)
+        details[name] = long_new
+        PROMPT_DATA["npc_details"] = details
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("npc_list"))
+    return render_template_string(
+        """
+        <h1>{{name}} bearbeiten</h1>
+        <form method='post'>
+            Kurzbeschreibung:<br><textarea name='short'>{{short}}</textarea><br>
+            Lange Beschreibung:<br><textarea name='long'>{{long}}</textarea><br>
+            <button type='submit'>Speichern</button>
+        </form>
+        """,
+        name=name,
+        short=short_text,
+        long=long_text,
+    )
+
+@app.route("/delete/<name>")
+@login_required
+def delete_npc(name):
+    details = PROMPT_DATA.get("npc_details", {})
+    details.pop(name, None)
+    lines = [l for l in PROMPT_DATA.get("npcs", "").splitlines() if not l.startswith(name + ":")]
+    PROMPT_DATA["npcs"] = "\n".join(lines)
+    PROMPT_DATA["npc_details"] = details
+    save_prompt_data(PROMPT_DATA)
+    refresh_data()
+    return redirect(url_for("npc_list"))
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
@@ -156,9 +297,9 @@ async def force_command(interaction: discord.Interaction):
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
-def load_npc_extension(npc_name: str, data: dict = PROMPT_DATA) -> str:
+def load_npc_extension(npc_name: str) -> str:
     base = npc_name.split()[0]
-    details = data.get("npc_details", {})
+    details = PROMPT_DATA.get("npc_details", {})
     extra = details.get(base)
     if extra:
         logger.debug("NPC-Erweiterung für %s gefunden", npc_name)
@@ -253,6 +394,10 @@ async def hourly_post():
     npc = get_random_npc()
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
+def run_flask():
+    app.run(host='0.0.0.0', port=5000)
+
 if __name__ == '__main__':
+    Thread(target=run_flask, daemon=True).start()
     logger.info('Starting Discord bot')
     client.run(DISCORD_TOKEN)
