@@ -39,15 +39,15 @@ if DISCORD_TOKEN is None:
 if OPENAI_API_KEY is None:
     logger.error('OPENAI_API_KEY environment variable nicht gesetzt')
     raise RuntimeError('OPENAI_API_KEY environment variable nicht gesetzt')
-    
+
 if CHANNEL_ID is None:
     logger.error('CHANNEL_ID environment variable nicht gesetzt')
     raise RuntimeError('CHANNEL_ID environment variable nicht gesetzt')
-    
+
 if WEB_USERNAME is None or WEB_PASSWORD is None:
     logger.error('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
     raise RuntimeError('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
-    
+
 CHANNEL_ID = int(CHANNEL_ID)
 
 openai.api_key = OPENAI_API_KEY
@@ -66,7 +66,7 @@ def load_prompt_data(path="prompt_data.json"):
     logger.debug("Lade Prompt-Daten aus %s", path)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
-        
+
 def save_prompt_data(data: dict, path="prompt_data.json"):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -88,7 +88,6 @@ def refresh_data():
     PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
     NPC_LIST = sorted({name.split()[0] for name in PROMPT_DATA.get("npc_details", {}).keys()})
 
-refresh_data()
 logger.debug('Pre prompt geladen')
 
 current_weather = "Unbestimmt"
@@ -245,6 +244,7 @@ def roll_weather():
 async def on_ready():
     await tree.sync()
     hourly_post.start()
+    refresh_data()
 
 @client.event
 async def on_message(message: discord.Message):
@@ -257,6 +257,7 @@ async def on_message(message: discord.Message):
     if message.channel.id != CHANNEL_ID:
         return
     content_lower = message.content.lower()
+    print(f"NPC List: {NPC_LIST}")
     for npc in NPC_LIST:
         if npc.lower() in content_lower:
             await reply_as_npc(npc, message)
