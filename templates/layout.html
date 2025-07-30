@@ -1,19 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="utf-8">
     <title>DM Helfer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<div class="container">
+<header>
+    <h1>DM Helfer</h1>
     <nav>
-        <div><a href="{{ url_for('npc_list') }}">Home</a></div>
+        <a href="{{ url_for('npc_list') }}">Home</a>
         {% if session.get('logged_in') %}
-        <div><a href="{{ url_for('logout') }}">Logout</a></div>
+        <a href="{{ url_for('logout') }}">Logout</a>
         {% endif %}
     </nav>
+</header>
+<main class="container">
     {% block content %}{% endblock %}
-</div>
+</main>
 </body>
 </html>
