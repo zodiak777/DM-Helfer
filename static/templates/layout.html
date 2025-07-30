@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>DM Helfer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    <nav>
+        <div><a href="{{ url_for('npc_list') }}">Home</a></div>
+        {% if session.get('logged_in') %}
+        <div><a href="{{ url_for('logout') }}">Logout</a></div>
+        {% endif %}
+    </nav>
+    {% block content %}{% endblock %}
+</div>
+</body>
+</html>
