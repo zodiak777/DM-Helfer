@@ -83,15 +83,18 @@ def build_pre_prompt(data: dict) -> str:
     return "\n\n".join(parts)
 
 def refresh_data():
-    global PROMPT_DATA, PRE_PROMPT
+    global PROMPT_DATA, PRE_PROMPT, NPC_LIST
     PROMPT_DATA = load_prompt_data()
     PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
+    NPC_LIST = sorted({name.split()[0] for name in PROMPT_DATA.get("npc_details", {}).keys()})
 
 refresh_data()
 logger.debug('Pre prompt geladen')
 
 current_weather = "Unbestimmt"
 weather_roll_date = None
+
+NPC_LIST: list[str] = []
 
 WEATHER_TABLE = {
     1: "glühende Hitze",
@@ -115,15 +118,6 @@ WEATHER_TABLE = {
     19: "Platzregen",
     20: "extremer Platzregen",
 }
-
-NPC_LIST = [
-    "Agatha",
-    "Bwayes",
-    "Brumir",
-    "Nithra",
-    "Faelwyn",
-    "Vaelion",
-]
 
 user_list = {
     "zodiak6610": "Spielleiter",
