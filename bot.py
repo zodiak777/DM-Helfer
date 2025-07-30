@@ -2,12 +2,14 @@ import os
 import random
 import logging
 import json
+from threading import Thread
 from datetime import datetime
 from dotenv import load_dotenv
 import openai
 import discord
 from discord.ext import tasks
 from discord import app_commands
+from flask import Flask, request, session, redirect, url_for, render_template_string
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,6 +25,9 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+WEB_USERNAME = os.getenv('WEB_USERNAME')
+WEB_PASSWORD = os.getenv('WEB_PASSWORD')
+FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'secret')
 
 logger.debug("Env vars geladen: CHANNEL_ID=%s", CHANNEL_ID)
 
@@ -37,11 +42,18 @@ if OPENAI_API_KEY is None:
 if CHANNEL_ID is None:
     logger.error('CHANNEL_ID environment variable nicht gesetzt')
     raise RuntimeError('CHANNEL_ID environment variable nicht gesetzt')
+
+if WEB_USERNAME is None or WEB_PASSWORD is None:
+    logger.error('WEB_USERNAME und WEB_PASSWORD müssen gesetzt sein')
+    raise RuntimeError('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
     
 CHANNEL_ID = int(CHANNEL_ID)
 
 openai.api_key = OPENAI_API_KEY
 logger.debug('OpenAI API key geladen')
+
+app = Flask(__name__)
+app.secret_key = FLASK_SECRET_KEY
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -68,6 +80,32 @@ def build_pre_prompt(data: dict) -> str:
 PROMPT_DATA = load_prompt_data()
 PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
 logger.debug('Pre prompt geladen')
+
+def save_prompt_data(data: dict, path: str = "prompt_data.json") -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def reload_prompt() -> None:
+    global PROMPT_DATA, PRE_PROMPT
+    PROMPT_DATA = load_prompt_data()
+    PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
+
+
+def parse_npc_short(text: str) -> dict:
+    result = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if ":" in line:
+            name, desc = line.split(":", 1)
+            result[name.strip()] = desc.strip()
+    return result
+
+
+def build_npc_short(data: dict) -> str:
+    return "\n".join(f"{name}: {desc}" for name, desc in data.items())
 
 current_weather = "Unbestimmt"
 weather_roll_date = None
@@ -118,6 +156,47 @@ user_list = {
     ".wolfgrimm": "Katazur",
     "DM-Helfer#7090": "DM-Helfer"
 }
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('username') == WEB_USERNAME and request.form.get('password') == WEB_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('edit'))
+        return 'Login fehlgeschlagen', 401
+    return render_template_string('''<form method="post">
+        <input name="username" placeholder="Username">
+        <input type="password" name="password" placeholder="Password">
+        <button type="submit">Login</button>
+    </form>''')
+
+
+@app.route('/edit', methods=['GET', 'POST'])
+def edit():
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    short_desc = parse_npc_short(PROMPT_DATA.get('npcs', ''))
+
+    if request.method == 'POST':
+        for name in NPC_LIST:
+            s_key = f'short_{name}'
+            l_key = f'long_{name}'
+            if s_key in request.form:
+                short_desc[name] = request.form[s_key]
+            if l_key in request.form:
+                PROMPT_DATA.setdefault('npc_details', {})[name] = request.form[l_key]
+        PROMPT_DATA['npcs'] = build_npc_short(short_desc)
+        save_prompt_data(PROMPT_DATA)
+        reload_prompt()
+
+    rows = []
+    for name in NPC_LIST:
+        s_val = short_desc.get(name, '')
+        l_val = PROMPT_DATA.get('npc_details', {}).get(name, '')
+        rows.append(f"<h3>{name}</h3>Kurzbeschreibung:<br><textarea name='short_{name}' rows='2' cols='80'>{s_val}</textarea><br>Erweiterte Beschreibung:<br><textarea name='long_{name}' rows='6' cols='80'>{l_val}</textarea>")
+    body = "".join(rows)
+    return render_template_string('<form method="post">' + body + '<br><button type="submit">Speichern</button></form>')
 
 def get_random_npc():
     return random.choice(NPC_LIST)
@@ -254,5 +333,10 @@ async def hourly_post():
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
 if __name__ == '__main__':
-    logger.info('Starting Discord bot')
+    logger.info('Starting Discord bot and web interface')
+
+    def run_web():
+        app.run(host='0.0.0.0', port=5000)
+
+    Thread(target=run_web, daemon=True).start()
     client.run(DISCORD_TOKEN)
