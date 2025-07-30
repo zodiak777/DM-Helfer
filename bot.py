@@ -1,6 +1,7 @@
 import os
 import random
 import logging
+import json
 from datetime import datetime
 from dotenv import load_dotenv
 import openai
@@ -48,26 +49,24 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 logger.debug('Discord client initialisiert')
 
-def load_pre_prompt(path="prompt_parts"):
-    logger.debug("Lade pre prompt aus Ordner %s", path)
+def load_prompt_data(path="prompt_data.json"):
+    logger.debug("Lade Prompt-Daten aus %s", path)
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    def read_file(filename):
-        full_path = os.path.join(path, filename)
-        logger.debug("Lese %s", full_path)
-        with open(full_path, "r", encoding="utf-8") as f:
-            return f.read().strip()
-
-    parts = []
-    parts.append(read_file("core.txt"))
-    parts.append("Spielercharaktere:\n" + read_file("spieler.txt"))
-    parts.append("Nicht-Spielercharaktere:\n" + read_file("npcs.txt"))
-    parts.append("Tiere:\n" + read_file("tiere.txt"))
+def build_pre_prompt(data: dict) -> str:
+    parts = [
+        data.get("core", ""),
+        "Spielercharaktere:\n" + data.get("spieler", ""),
+        "Nicht-Spielercharaktere:\n" + data.get("npcs", ""),
+        "Tiere:\n" + data.get("tiere", ""),
+    ]
     section_title = "Gegebene Weltinformationen (fest, nicht erweitern!):"
-    parts.append(section_title + "\n" + read_file("welt.txt"))
-
+    parts.append(section_title + "\n" + data.get("welt", ""))
     return "\n\n".join(parts)
 
-PRE_PROMPT = load_pre_prompt()
+PROMPT_DATA = load_prompt_data()
+PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
 logger.debug('Pre prompt geladen')
 
 current_weather = "Unbestimmt"
@@ -157,16 +156,13 @@ async def force_command(interaction: discord.Interaction):
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
-def load_npc_extension(npc_name: str, path: str = os.path.join("prompt_parts", "npcs")) -> str:
-    """Lade erweiterte Informationen zu einem NPC, falls vorhanden."""
-    base = npc_name.split()[0].lower()
-    candidates = [f"{base}_erweitert.txt", f"{base}_erweitert"]
-    for fname in candidates:
-        full_path = os.path.join(path, fname)
-        if os.path.exists(full_path):
-            logger.debug("Lese NPC-Erweiterung %s", full_path)
-            with open(full_path, "r", encoding="utf-8") as f:
-                return f.read().strip()
+def load_npc_extension(npc_name: str, data: dict = PROMPT_DATA) -> str:
+    base = npc_name.split()[0]
+    details = data.get("npc_details", {})
+    extra = details.get(base)
+    if extra:
+        logger.debug("NPC-Erweiterung für %s gefunden", npc_name)
+        return extra
     logger.debug("Keine NPC-Erweiterung für %s gefunden", npc_name)
     return ""
 
