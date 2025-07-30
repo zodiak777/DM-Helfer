@@ -10,7 +10,7 @@ import openai
 import discord
 from discord.ext import tasks
 from discord import app_commands
-from flask import Flask, request, session, redirect, url_for, render_template_string
+from flask import Flask, request, session, redirect, url_for, render_template
 
 logging.basicConfig(
     level=logging.INFO,
@@ -154,32 +154,18 @@ def login():
         if request.form.get("username") == WEB_USERNAME and request.form.get("password") == WEB_PASSWORD:
             session["logged_in"] = True
             return redirect(url_for("npc_list"))
-    return render_template_string(
-        """
-        <form method='post'>
-            <input name='username' placeholder='Username'>
-            <input name='password' type='password' placeholder='Password'>
-            <button type='submit'>Login</button>
-        </form>
-        """
-    )
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
 
 @app.route("/")
 @login_required
 def npc_list():
     all_npcs = sorted(PROMPT_DATA.get("npc_details", {}).keys())
-    return render_template_string(
-        """
-        <h1>NPCs</h1>
-        <ul>
-        {% for npc in npcs %}
-            <li>{{npc}} <a href='{{url_for("edit_npc", name=npc)}}'>Bearbeiten</a> <a href='{{url_for("delete_npc", name=npc)}}'>Löschen</a></li>
-        {% endfor %}
-        </ul>
-        <a href='{{url_for("add_npc")}}'>Neuen NPC anlegen</a>
-        """,
-        npcs=all_npcs,
-    )
+    return render_template("npc_list.html", npcs=all_npcs)
 
 @app.route("/add", methods=["GET", "POST"])
 @login_required
@@ -197,17 +183,7 @@ def add_npc():
             save_prompt_data(PROMPT_DATA)
             refresh_data()
             return redirect(url_for("npc_list"))
-    return render_template_string(
-        """
-        <h1>Neuen NPC erstellen</h1>
-        <form method='post'>
-            Name:<br><input name='name'><br>
-            Kurzbeschreibung:<br><textarea name='short'></textarea><br>
-            Lange Beschreibung:<br><textarea name='long'></textarea><br>
-            <button type='submit'>Speichern</button>
-        </form>
-        """
-    )
+    return render_template("add_npc.html")
 
 @app.route("/edit/<name>", methods=["GET", "POST"])
 @login_required
@@ -234,15 +210,8 @@ def edit_npc(name):
         save_prompt_data(PROMPT_DATA)
         refresh_data()
         return redirect(url_for("npc_list"))
-    return render_template_string(
-        """
-        <h1>{{name}} bearbeiten</h1>
-        <form method='post'>
-            Kurzbeschreibung:<br><textarea name='short'>{{short}}</textarea><br>
-            Lange Beschreibung:<br><textarea name='long'>{{long}}</textarea><br>
-            <button type='submit'>Speichern</button>
-        </form>
-        """,
+    return render_template(
+        "edit_npc.html",
         name=name,
         short=short_text,
         long=long_text,
