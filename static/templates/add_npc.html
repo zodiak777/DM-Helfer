@@ -1,0 +1,10 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Neuen NPC erstellen</h1>
+<form method="post">
+    Name:<br><input name="name"><br>
+    Kurzbeschreibung:<br><textarea name="short"></textarea><br>
+    Lange Beschreibung:<br><textarea name="long"></textarea><br>
+    <button type="submit">Speichern</button>
+</form>
+{% endblock %}
