@@ -257,7 +257,6 @@ async def on_message(message: discord.Message):
     if message.channel.id != CHANNEL_ID:
         return
     content_lower = message.content.lower()
-    print(f"NPC List: {NPC_LIST}")
     for npc in NPC_LIST:
         if npc.lower() in content_lower:
             await reply_as_npc(npc, message)
