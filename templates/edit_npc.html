@@ -3,9 +3,9 @@
 <h1>{{ name }} bearbeiten</h1>
 <form method="post">
     Kurzbeschreibung:<br>
-    <textarea name="short" rows="3"></textarea><br>
+    <textarea name="short" rows="3">{{ short }}</textarea><br>
     Lange Beschreibung:<br>
-    <textarea name="long" rows="8"></textarea><br>
+    <textarea name="long" rows="8">{{ long }}</textarea><br>
     <button type="submit">Speichern</button>
 </form>
 {% endblock %}
