@@ -75,6 +75,7 @@ body {
 }
 
 .container {
+    width: 100%;
     margin: 40px;
     background: #3b3b3b;
     padding: 30px;
