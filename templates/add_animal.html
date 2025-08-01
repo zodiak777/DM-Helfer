@@ -1,0 +1,10 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Neues Tier erstellen</h1>
+<form method="post">
+    Name:<br><input name="name"><br>
+    Info:<br>
+    <textarea name="info" rows="5"></textarea><br>
+    <button type="submit">Speichern</button>
+</form>
+{% endblock %}
