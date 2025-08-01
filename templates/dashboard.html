@@ -17,5 +17,15 @@
         <p>{{ animal_count }} vorhanden</p>
         <a class="button" href="{{ url_for('animal_list') }}">Verwalten</a>
     </div>
+    <div class="card">
+        <h2>Core</h2>
+        <p>{{ core_text }}</p>
+        <a class="button" href="{{ url_for('edit_core') }}">Bearbeiten</a>
+    </div>
+    <div class="card">
+        <h2>Welt</h2>
+        <p>{{ world_text }}</p>
+        <a class="button" href="{{ url_for('edit_world') }}">Bearbeiten</a>
+    </div>
 </div>
 {% endblock %}
