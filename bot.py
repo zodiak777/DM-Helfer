@@ -72,11 +72,23 @@ def save_prompt_data(data: dict, path="prompt_data.json"):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 def build_pre_prompt(data: dict) -> str:
+    def join_section(items, fmt):
+        return "\n".join(fmt(i) for i in items)
+
+    spieler_txt = join_section(
+        data.get("spieler", []), lambda p: f"{p['name']} – {p['info']}"
+    )
+    npc_txt = join_section(
+        data.get("npc", []), lambda n: f"{n['name']}: {n['short']}"
+    )
+    tiere_txt = join_section(
+        data.get("tiere", []), lambda t: f"{t['name']}: {t['info']}"
+    )
     parts = [
         data.get("core", ""),
-        "Spielercharaktere:\n" + data.get("spieler", ""),
-        "Nicht-Spielercharaktere:\n" + data.get("npcs", ""),
-        "Tiere:\n" + data.get("tiere", ""),
+        "Spielercharaktere:\n" + spieler_txt,
+        "Nicht-Spielercharaktere:\n" + npc_txt,
+        "Tiere:\n" + tiere_txt,
     ]
     section_title = "Gegebene Weltinformationen (fest, nicht erweitern!):"
     parts.append(section_title + "\n" + data.get("welt", ""))
@@ -86,7 +98,7 @@ def refresh_data():
     global PROMPT_DATA, PRE_PROMPT, NPC_LIST
     PROMPT_DATA = load_prompt_data()
     PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
-    NPC_LIST = sorted({name.split()[0] for name in PROMPT_DATA.get("npc_details", {}).keys()})
+    NPC_LIST = sorted({n["name"].split()[0] for n in PROMPT_DATA.get("npc", [])})
 
 logger.debug('Pre prompt geladen')
 
@@ -157,7 +169,7 @@ def logout():
 @app.route("/")
 @login_required
 def npc_list():
-    all_npcs = sorted(PROMPT_DATA.get("npc_details", {}).keys())
+    all_npcs = sorted(n["name"].split()[0] for n in PROMPT_DATA.get("npc", []))
     return render_template("npc_list.html", npcs=all_npcs)
 
 @app.route("/add", methods=["GET", "POST"])
@@ -168,11 +180,8 @@ def add_npc():
         short = request.form.get("short", "").strip()
         long = request.form.get("long", "").strip()
         if name and short:
-            details = PROMPT_DATA.setdefault("npc_details", {})
-            details[name] = long
-            lines = PROMPT_DATA.get("npcs", "").splitlines()
-            lines.append(f"{name}: {short}")
-            PROMPT_DATA["npcs"] = "\n".join(lines)
+            npc_list = PROMPT_DATA.setdefault("npc", [])
+            npc_list.append({"name": name, "short": short, "long": long})
             save_prompt_data(PROMPT_DATA)
             refresh_data()
             return redirect(url_for("npc_list"))
@@ -181,32 +190,18 @@ def add_npc():
 @app.route("/edit/<name>", methods=["GET", "POST"])
 @login_required
 def edit_npc(name):
-    details = PROMPT_DATA.get("npc_details", {})
-    long_text = details.get(name, "")
-    lines = PROMPT_DATA.get("npcs", "").splitlines()
-    short_text = ""
-    index = None
-    full_name = name
-    for i, line in enumerate(lines):
-        if ":" not in line:
-            continue
-        entry_name, desc = line.split(":", 1)
-        if entry_name.split()[0] == name:
-            short_text = desc.strip()
-            index = i
-            full_name = entry_name
-            break
+    npc_list = PROMPT_DATA.get("npc", [])
+    npc = next((n for n in npc_list if n["name"].split()[0] == name), None)
+    if npc is None:
+        return "NPC not found", 404
     if request.method == "POST":
-        short_new = request.form.get("short", "").strip()
-        long_new = request.form.get("long", "").strip()
-        if index is not None:
-            lines[index] = f"{full_name}: {short_new}"
-        PROMPT_DATA["npcs"] = "\n".join(lines)
-        details[name] = long_new
-        PROMPT_DATA["npc_details"] = details
+        npc["short"] = request.form.get("short", "").strip()
+        npc["long"] = request.form.get("long", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
         return redirect(url_for("npc_list"))
+    short_text = npc.get("short", "")
+    long_text = npc.get("long", "")
     return render_template(
         "edit_npc.html",
         name=name,
@@ -217,16 +212,8 @@ def edit_npc(name):
 @app.route("/delete/<name>")
 @login_required
 def delete_npc(name):
-    details = PROMPT_DATA.get("npc_details", {})
-    details.pop(name, None)
-    updated_lines = []
-    for line in PROMPT_DATA.get("npcs", "").splitlines():
-        entry_name = line.split(":", 1)[0]
-        if entry_name.split()[0] != name:
-            updated_lines.append(line)
-    lines = updated_lines
-    PROMPT_DATA["npcs"] = "\n".join(lines)
-    PROMPT_DATA["npc_details"] = details
+    npc_list = PROMPT_DATA.get("npc", [])
+    PROMPT_DATA["npc"] = [n for n in npc_list if n["name"].split()[0] != name]
     save_prompt_data(PROMPT_DATA)
     refresh_data()
     return redirect(url_for("npc_list"))
@@ -271,11 +258,12 @@ async def force_command(interaction: discord.Interaction):
 
 def load_npc_extension(npc_name: str) -> str:
     base = npc_name.split()[0]
-    details = PROMPT_DATA.get("npc_details", {})
-    extra = details.get(base)
-    if extra:
-        logger.debug("NPC-Erweiterung für %s gefunden", npc_name)
-        return extra
+    for npc in PROMPT_DATA.get("npc", []):
+        if npc["name"].split()[0] == base:
+            extra = npc.get("long", "")
+            if extra:
+                logger.debug("NPC-Erweiterung für %s gefunden", npc_name)
+                return extra
     logger.debug("Keine NPC-Erweiterung für %s gefunden", npc_name)
     return ""
 
