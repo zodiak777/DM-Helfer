@@ -9,7 +9,10 @@
 <header>
     <h1>DM Helfer</h1>
     <nav>
-        <a href="{{ url_for('npc_list') }}">Home</a>
+        <a href="{{ url_for('npc_list') }}">NPCs</a>
+        <a href="{{ url_for('player_list') }}">Spieler</a>
+        <a href="{{ url_for('animal_list') }}">Tiere</a>
+        <a href="{{ url_for('edit_world') }}">Welt/Core</a>
         {% if session.get('logged_in') %}
         <a href="{{ url_for('logout') }}">Logout</a>
         {% endif %}
