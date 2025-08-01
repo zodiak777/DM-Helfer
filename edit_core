@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Core-Anweisungen</h1>
+<form method="post">
+    Core:<br>
+    <textarea name="core" rows="10">{{ core }}</textarea><br>
+    <button type="submit">Speichern</button>
+</form>
+{% endblock %}
