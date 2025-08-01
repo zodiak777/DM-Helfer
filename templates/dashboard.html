@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Übersicht</h1>
+<div class="cards">
+    <div class="card">
+        <h2>NPCs</h2>
+        <p>{{ npc_count }} vorhanden</p>
+        <a class="button" href="{{ url_for('npc_list') }}">Verwalten</a>
+    </div>
+    <div class="card">
+        <h2>Spieler</h2>
+        <p>{{ player_count }} vorhanden</p>
+        <a class="button" href="{{ url_for('player_list') }}">Verwalten</a>
+    </div>
+    <div class="card">
+        <h2>Tiere</h2>
+        <p>{{ animal_count }} vorhanden</p>
+        <a class="button" href="{{ url_for('animal_list') }}">Verwalten</a>
+    </div>
+</div>
+{% endblock %}
