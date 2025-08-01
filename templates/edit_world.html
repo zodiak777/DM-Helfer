@@ -1,0 +1,11 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>Welt-Informationen und Core-Anweisungen</h1>
+<form method="post">
+    Welt-Info:<br>
+    <textarea name="welt" rows="10">{{ welt }}</textarea><br>
+    Core:<br>
+    <textarea name="core" rows="10">{{ core }}</textarea><br>
+    <button type="submit">Speichern</button>
+</form>
+{% endblock %}
