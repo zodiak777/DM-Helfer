@@ -158,7 +158,7 @@ def login():
     if request.method == "POST":
         if request.form.get("username") == WEB_USERNAME and request.form.get("password") == WEB_PASSWORD:
             session["logged_in"] = True
-            return redirect(url_for("npc_list"))
+            return redirect(url_for("dashboard"))
     return render_template("login.html")
 
 @app.route("/logout")
@@ -167,6 +167,20 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/")
+@login_required
+def dashboard():
+    npc_count = len(PROMPT_DATA.get("npc", []))
+    player_count = len(PROMPT_DATA.get("spieler", []))
+    animal_count = len(PROMPT_DATA.get("tiere", []))
+    return render_template(
+        "dashboard.html",
+        npc_count=npc_count,
+        player_count=player_count,
+        animal_count=animal_count,
+    )
+
+
+@app.route("/npcs")
 @login_required
 def npc_list():
     all_npcs = sorted(n["name"].split()[0] for n in PROMPT_DATA.get("npc", []))
