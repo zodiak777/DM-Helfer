@@ -1,0 +1,9 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1>{{ name }} bearbeiten</h1>
+<form method="post">
+    Info:<br>
+    <textarea name="info" rows="5">{{ info }}</textarea><br>
+    <button type="submit">Speichern</button>
+</form>
+{% endblock %}
