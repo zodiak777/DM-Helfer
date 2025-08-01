@@ -218,6 +218,107 @@ def delete_npc(name):
     refresh_data()
     return redirect(url_for("npc_list"))
 
+@app.route("/players")
+@login_required
+def player_list():
+    players = sorted(p["name"] for p in PROMPT_DATA.get("spieler", []))
+    return render_template("player_list.html", players=players)
+
+@app.route("/players/add", methods=["GET", "POST"])
+@login_required
+def add_player():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        info = request.form.get("info", "").strip()
+        if name and info:
+            lst = PROMPT_DATA.setdefault("spieler", [])
+            lst.append({"name": name, "info": info})
+            save_prompt_data(PROMPT_DATA)
+            refresh_data()
+            return redirect(url_for("player_list"))
+    return render_template("add_player.html")
+
+@app.route("/players/edit/<name>", methods=["GET", "POST"])
+@login_required
+def edit_player(name):
+    players = PROMPT_DATA.get("spieler", [])
+    pl = next((p for p in players if p["name"] == name), None)
+    if pl is None:
+        return "Spieler not found", 404
+    if request.method == "POST":
+        pl["info"] = request.form.get("info", "").strip()
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("player_list"))
+    return render_template("edit_player.html", name=name, info=pl.get("info", ""))
+
+@app.route("/players/delete/<name>")
+@login_required
+def delete_player(name):
+    players = PROMPT_DATA.get("spieler", [])
+    PROMPT_DATA["spieler"] = [p for p in players if p["name"] != name]
+    save_prompt_data(PROMPT_DATA)
+    refresh_data()
+    return redirect(url_for("player_list"))
+
+@app.route("/animals")
+@login_required
+def animal_list():
+    animals = sorted(t["name"] for t in PROMPT_DATA.get("tiere", []))
+    return render_template("animal_list.html", animals=animals)
+
+@app.route("/animals/add", methods=["GET", "POST"])
+@login_required
+def add_animal():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        info = request.form.get("info", "").strip()
+        if name and info:
+            lst = PROMPT_DATA.setdefault("tiere", [])
+            lst.append({"name": name, "info": info})
+            save_prompt_data(PROMPT_DATA)
+            refresh_data()
+            return redirect(url_for("animal_list"))
+    return render_template("add_animal.html")
+
+@app.route("/animals/edit/<name>", methods=["GET", "POST"])
+@login_required
+def edit_animal(name):
+    animals = PROMPT_DATA.get("tiere", [])
+    an = next((a for a in animals if a["name"] == name), None)
+    if an is None:
+        return "Tier not found", 404
+    if request.method == "POST":
+        an["info"] = request.form.get("info", "").strip()
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("animal_list"))
+    return render_template("edit_animal.html", name=name, info=an.get("info", ""))
+
+@app.route("/animals/delete/<name>")
+@login_required
+def delete_animal(name):
+    animals = PROMPT_DATA.get("tiere", [])
+    PROMPT_DATA["tiere"] = [a for a in animals if a["name"] != name]
+    save_prompt_data(PROMPT_DATA)
+    refresh_data()
+    return redirect(url_for("animal_list"))
+
+@app.route("/world", methods=["GET", "POST"])
+@login_required
+def edit_world():
+    if request.method == "POST":
+        PROMPT_DATA["welt"] = request.form.get("welt", "").strip()
+        PROMPT_DATA["core"] = request.form.get("core", "").strip()
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("npc_list"))
+    return render_template(
+        "edit_world.html",
+        welt=PROMPT_DATA.get("welt", ""),
+        core=PROMPT_DATA.get("core", ""),
+    )
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
