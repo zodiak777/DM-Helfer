@@ -172,11 +172,15 @@ def dashboard():
     npc_count = len(PROMPT_DATA.get("npc", []))
     player_count = len(PROMPT_DATA.get("spieler", []))
     animal_count = len(PROMPT_DATA.get("tiere", []))
+    core_text = "vorhanden" if PROMPT_DATA.get("core") else "nicht gesetzt"
+    world_text = "vorhanden" if PROMPT_DATA.get("welt") else "nicht gesetzt"
     return render_template(
         "dashboard.html",
         npc_count=npc_count,
         player_count=player_count,
         animal_count=animal_count,
+        core_text=core_text,
+        world_text=world_text,
     )
 
 
