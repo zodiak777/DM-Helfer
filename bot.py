@@ -309,13 +309,24 @@ def delete_animal(name):
 def edit_world():
     if request.method == "POST":
         PROMPT_DATA["welt"] = request.form.get("welt", "").strip()
-        PROMPT_DATA["core"] = request.form.get("core", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
         return redirect(url_for("npc_list"))
     return render_template(
         "edit_world.html",
         welt=PROMPT_DATA.get("welt", ""),
+    )
+
+@app.route("/core", methods=["GET", "POST"])
+@login_required
+def edit_core():
+    if request.method == "POST":
+        PROMPT_DATA["core"] = request.form.get("core", "").strip()
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("npc_list"))
+    return render_template(
+        "edit_core.html",
         core=PROMPT_DATA.get("core", ""),
     )
 
