@@ -7,20 +7,6 @@
 </head>
 <body>
 <div class="dashboard">
-    <aside class="sidebar">
-        <h2>DM Helfer</h2>
-        <nav>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            <a href="{{ url_for('npc_list') }}">NPCs</a>
-            <a href="{{ url_for('player_list') }}">Spieler</a>
-            <a href="{{ url_for('animal_list') }}">Tiere</a>
-            <a href="{{ url_for('edit_world') }}">Welt</a>
-            <a href="{{ url_for('edit_core') }}">Core</a>
-            {% if session.get('logged_in') %}
-            <a href="{{ url_for('logout') }}">Logout</a>
-            {% endif %}
-        </nav>
-    </aside>
     <main class="container">
         {% block content %}{% endblock %}
     </main>
