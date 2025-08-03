@@ -12,22 +12,40 @@ from discord.ext import tasks
 from discord import app_commands
 from flask import Flask, request, session, redirect, url_for, render_template
 
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(BASE_DIR, "config.json"), "r", encoding="utf-8") as f:
+    CONFIG = json.load(f)
 
+LOG_DIR = os.path.join(BASE_DIR, CONFIG["logging"]["log_dir"])
+os.makedirs(LOG_DIR, exist_ok=True)
+LOG_LEVEL = getattr(logging, CONFIG["logging"]["log_level"].upper(), logging.INFO)
+
+PROMPT_DATA_PATH = os.path.join(BASE_DIR, CONFIG["data_paths"]["prompt_data"])
+OPENAI_MODEL = CONFIG["openai"]["model"]
+OPENAI_MAX_TOKENS = CONFIG["openai"]["max_tokens"]
+
+TASK_INTERVAL_HOURS = CONFIG["discord"]["task_interval_hours"]
+DAILY_WEATHER_HOUR = CONFIG["discord"]["daily_weather_hour"]
+SILENT_HOURS_START, SILENT_HOURS_END = CONFIG["discord"]["silent_hours"]
+POST_PROBABILITY = CONFIG["discord"]["post_probability_percent"] / 100.0
+MIN_SECONDS_SINCE_USER_POST = CONFIG["discord"]["min_seconds_since_user_post"]
+CONTEXT_MESSAGE_LIMIT = CONFIG["discord"]["context_message_limit"]
+
+WEB_HOST = CONFIG["webserver"]["host"]
+WEB_PORT = CONFIG["webserver"]["port"]
 
 class LevelFilter(logging.Filter):
     def __init__(self, level: int) -> None:
         super().__init__()
         self.level = level
 
-    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - simple filter
+    def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno == self.level
 
 
 formatter = logging.Formatter("%(asctime)s %(levelname)s:%(name)s:%(message)s")
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.DEBUG)
+root_logger.setLevel(LOG_LEVEL)
 
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
@@ -83,12 +101,12 @@ logger.debug('Discord client initialized')
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
-def load_prompt_data(path="prompt_data.json"):
+def load_prompt_data(path=PROMPT_DATA_PATH):
     logger.debug("Loading prompt data from %s", path)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def save_prompt_data(data: dict, path="prompt_data.json"):
+def save_prompt_data(data: dict, path=PROMPT_DATA_PATH):
     logger.debug("Saving prompt data to %s", path)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -506,7 +524,7 @@ async def generate_and_send(input, npc_name: str | None = None):
 
     try:
         response = openai.chat.completions.create(  # DO NOT CHANGE THIS LINE
-            model='gpt-4.1',
+            model=OPENAI_MODEL,
             messages=[
                 {'role': 'system', 'content': prompt},
                 {
@@ -514,7 +532,7 @@ async def generate_and_send(input, npc_name: str | None = None):
                     'content': input
                 },
             ],
-            max_tokens=1024,
+            max_tokens=OPENAI_MAX_TOKENS,
         )
         message = response.choices[0].message.content.strip()
         logger.debug('OpenAI response: %s', message)
@@ -523,7 +541,7 @@ async def generate_and_send(input, npc_name: str | None = None):
     except Exception:
         logger.error('Error while sending message', exc_info=True)
 
-async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
+async def get_recent_messages(channel: discord.TextChannel, limit: int = CONTEXT_MESSAGE_LIMIT, before: discord.Message | None = None):
     messages = []
     async for msg in channel.history(limit=limit, before=before, oldest_first=False):
         messages.append(f"{USER_LIST[str(msg.author)]}: {msg.content}")
@@ -533,7 +551,7 @@ async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, bef
 async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     logger.info('Generating reply as %s', npc_name)
     channel = client.get_channel(CHANNEL_ID)
-    context = await get_recent_messages(channel, limit=10, before=trigger_message)
+    context = await get_recent_messages(channel, limit=CONTEXT_MESSAGE_LIMIT, before=trigger_message)
     input_text = (
         f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
@@ -541,23 +559,23 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     )
     await generate_and_send(input_text, npc_name)
 
-@tasks.loop(hours=1)
+@tasks.loop(hours=TASK_INTERVAL_HOURS)
 async def hourly_post():
     logger.debug('Hourly post task triggered')
     now = datetime.now()
     global current_weather, weather_roll_date
 
-    if now.hour == 8 and (weather_roll_date != now.date()):
+    if now.hour == DAILY_WEATHER_HOUR and (weather_roll_date != now.date()):
         current_weather = roll_weather()
         weather_roll_date = now.date()
         await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
         logger.info('Daily weather determined: %s', current_weather)
 
-    if 1 <= now.hour <= 8:
+    if SILENT_HOURS_START <= now.hour <= SILENT_HOURS_END:
         logger.debug('Quiet hour')
         return
 
-    if random.random() > 0.05:
+    if random.random() > POST_PROBABILITY:
         logger.debug('No post this hour')
         return
 
@@ -569,7 +587,7 @@ async def hourly_post():
             break
         if last_message is not None:
             age = discord.utils.utcnow() - last_message.created_at
-            if age.total_seconds() < 3600:
+            if age.total_seconds() < MIN_SECONDS_SINCE_USER_POST:
                 logger.debug('Last message only %s seconds old; skipped', age.total_seconds())
                 return
     except Exception:
@@ -580,7 +598,7 @@ async def hourly_post():
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
 def run_flask():
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host=WEB_HOST, port=WEB_PORT)
 
 if __name__ == '__main__':
     Thread(target=run_flask, daemon=True).start()
