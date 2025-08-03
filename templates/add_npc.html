@@ -1,13 +1,20 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="back"><a href="{{ url_for('npc_list') }}">Zurück</a></div>
-<h1>Neuen NPC erstellen</h1>
+<a class="btn btn-secondary mb-3" href="{{ url_for('npc_list') }}">Zurück</a>
+<h1 class="mb-4">Neuen NPC erstellen</h1>
 <form method="post">
-    Name:<br><input name="name"><br>
-    Kurzbeschreibung:<br>
-    <textarea name="short" rows="5"></textarea><br>
-    Lange Beschreibung:<br>
-    <textarea name="long" rows="20"></textarea><br>
-    <button type="submit">Speichern</button>
+    <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input class="form-control" id="name" name="name">
+    </div>
+    <div class="mb-3">
+        <label for="short" class="form-label">Kurzbeschreibung</label>
+        <textarea class="form-control" id="short" name="short" rows="5"></textarea>
+    </div>
+    <div class="mb-3">
+        <label for="long" class="form-label">Lange Beschreibung</label>
+        <textarea class="form-control" id="long" name="long" rows="20"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
 {% endblock %}
