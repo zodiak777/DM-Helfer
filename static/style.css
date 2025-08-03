@@ -129,10 +129,19 @@ button:hover {
     background: linear-gradient(45deg, #395591, #142038);
 }
 
-.logout {
-    text-align: right;
-    margin-bottom: 10px;
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
+
+.logout {
+    margin: 0;
+}
+
+.back {
+    margin-bottom: 20px;
 
 a {
     color: #80b3ff;
