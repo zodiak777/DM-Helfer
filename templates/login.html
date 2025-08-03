@@ -1,9 +1,15 @@
 {% extends 'layout.html' %}
 {% block content %}
-<h1>Login</h1>
+<h1 class="mb-4">Login</h1>
 <form method="post">
-    <input name="username" placeholder="Username">
-    <input name="password" type="password" placeholder="Password">
-    <button type="submit">Login</button>
+    <div class="mb-3">
+        <label for="username" class="form-label">Username</label>
+        <input class="form-control" id="username" name="username" placeholder="Username">
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input class="form-control" id="password" name="password" type="password" placeholder="Password">
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
 </form>
 {% endblock %}
