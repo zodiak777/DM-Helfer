@@ -1,5 +1,6 @@
 {% extends 'layout.html' %}
 {% block content %}
+<div class="back"><a href="{{ url_for('animal_list') }}">Zurück</a></div>
 <h1>Neues Tier erstellen</h1>
 <form method="post">
     Name:<br><input name="name"><br>
