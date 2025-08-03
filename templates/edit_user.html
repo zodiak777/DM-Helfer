@@ -1,0 +1,12 @@
+{% extends 'layout.html' %}
+{% block content %}
+<a class="btn btn-secondary mb-3" href="{{ url_for('user_list') }}">Zurück</a>
+<h1 class="mb-4">User {{ username }} bearbeiten</h1>
+<form method="post">
+    <div class="mb-3">
+        <label for="character" class="form-label">Charakter</label>
+        <input class="form-control" id="character" name="character" value="{{ character }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
+</form>
+{% endblock %}
