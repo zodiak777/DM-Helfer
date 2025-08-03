@@ -1,0 +1,17 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1 class="mb-4">Logs</h1>
+<form method="get" class="mb-3">
+    <label for="logselect" class="form-label">Logdatei wählen</label>
+    <select id="logselect" name="log" class="form-select" onchange="this.form.submit()">
+        <option value="">Bitte wählen</option>
+        {% for log in log_files %}
+            <option value="{{ log }}" {% if selected_log == log %}selected{% endif %}>{{ log }}</option>
+        {% endfor %}
+    </select>
+</form>
+{% if selected_log %}
+<h2>Inhalt von {{ selected_log }}</h2>
+<pre style="white-space: pre-wrap;">{{ log_content }}</pre>
+{% endif %}
+{% endblock %}
