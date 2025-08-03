@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% block content %}
+<a class="btn btn-secondary mb-3" href="{{ url_for('dashboard') }}">Zurück</a>
+<h1 class="mb-4">Wettertabelle bearbeiten</h1>
+<form method="post">
+{% for i in range(1,21) %}
+    <div class="mb-3">
+        <label for="w{{ i }}" class="form-label">{{ i }}</label>
+        <input class="form-control" id="w{{ i }}" name="{{ i }}" value="{{ weather.get(i, '') }}">
+    </div>
+{% endfor %}
+    <button type="submit" class="btn btn-primary">Speichern</button>
+</form>
+{% endblock %}
