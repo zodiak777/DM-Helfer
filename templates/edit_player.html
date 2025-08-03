@@ -1,10 +1,12 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="back"><a href="{{ url_for('player_list') }}">Zurück</a></div>
-<h1>{{ name }} bearbeiten</h1>
+<a class="btn btn-secondary mb-3" href="{{ url_for('player_list') }}">Zurück</a>
+<h1 class="mb-4">{{ name }} bearbeiten</h1>
 <form method="post">
-    Info:<br>
-    <textarea name="info" rows="5">{{ info }}</textarea><br>
-    <button type="submit">Speichern</button>
+    <div class="mb-3">
+        <label for="info" class="form-label">Info</label>
+        <textarea class="form-control" id="info" name="info" rows="5">{{ info }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
 {% endblock %}
