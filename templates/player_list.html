@@ -1,11 +1,17 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="back"><a href="{{ url_for('dashboard') }}">Zurück</a></div>
-<h1>Spieler</h1>
-<ul>
+<a class="btn btn-secondary mb-3" href="{{ url_for('dashboard') }}">Zurück</a>
+<h1 class="mb-4">Spieler</h1>
+<ul class="list-group mb-3">
 {% for p in players %}
-    <li>{{ p }} <a href="{{ url_for('edit_player', name=p) }}">Bearbeiten</a> <a href="{{ url_for('delete_player', name=p) }}">Löschen</a></li>
+    <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ p }}
+        <span>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('edit_player', name=p) }}">Bearbeiten</a>
+            <a class="btn btn-sm btn-danger" href="{{ url_for('delete_player', name=p) }}">Löschen</a>
+        </span>
+    </li>
 {% endfor %}
 </ul>
-<a href="{{ url_for('add_player') }}">Neuen Spieler anlegen</a>
+<a class="btn btn-success" href="{{ url_for('add_player') }}">Neuen Spieler anlegen</a>
 {% endblock %}
