@@ -142,9 +142,10 @@ button:hover {
 
 .back {
     margin-bottom: 20px;
+}
 
 a {
-    color: #80b3ff;
+    color: inherit;
     text-decoration: none;
 }
 
