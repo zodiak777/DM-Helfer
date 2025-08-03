@@ -1,10 +1,12 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="back"><a href="{{ url_for('dashboard') }}">Zurück</a></div>
-<h1>Welt-Informationen</h1>
+<a class="btn btn-secondary mb-3" href="{{ url_for('dashboard') }}">Zurück</a>
+<h1 class="mb-4">Welt-Informationen</h1>
 <form method="post">
-    Welt-Info:<br>
-    <textarea name="welt" rows="10">{{ welt }}</textarea><br>
-    <button type="submit">Speichern</button>
+    <div class="mb-3">
+        <label for="welt" class="form-label">Welt-Info</label>
+        <textarea class="form-control" id="welt" name="welt" rows="10">{{ welt }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
 {% endblock %}
