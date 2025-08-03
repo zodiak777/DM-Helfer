@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% block content %}
+<h1 class="mb-4">Settings</h1>
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+<form method="post">
+    <div class="mb-3">
+        <label for="config" class="form-label">config.json</label>
+        <textarea class="form-control" id="config" name="config" rows="20">{{ config }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
+</form>
+{% endblock %}
