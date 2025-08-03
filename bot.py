@@ -12,14 +12,39 @@ from discord.ext import tasks
 from discord import app_commands
 from flask import Flask, request, session, redirect, url_for, render_template
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
-    handlers=[
-        logging.FileHandler("bot.log"),
-        logging.StreamHandler(),
-    ],
-)
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+
+class LevelFilter(logging.Filter):
+    def __init__(self, level: int) -> None:
+        super().__init__()
+        self.level = level
+
+    def filter(self, record: logging.LogRecord) -> bool:  # pragma: no cover - simple filter
+        return record.levelno == self.level
+
+
+formatter = logging.Formatter("%(asctime)s %(levelname)s:%(name)s:%(message)s")
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+root_logger.addHandler(stream_handler)
+
+for name, level in [
+    ("debug", logging.DEBUG),
+    ("info", logging.INFO),
+    ("warning", logging.WARNING),
+    ("error", logging.ERROR),
+]:
+    file_handler = logging.FileHandler(os.path.join(LOG_DIR, f"{name}.log"))
+    file_handler.setLevel(level)
+    file_handler.addFilter(LevelFilter(level))
+    file_handler.setFormatter(formatter)
+    root_logger.addHandler(file_handler)
+    
 logger = logging.getLogger(__name__)
 
 load_dotenv()
