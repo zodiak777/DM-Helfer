@@ -3,14 +3,13 @@ import random
 import logging
 import json
 from datetime import datetime
-from functools import wraps
 from threading import Thread
 from dotenv import load_dotenv
 import openai
 import discord
 from discord.ext import tasks
 from discord import app_commands
-from flask import Flask, request, session, redirect, url_for, render_template
+import web
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE_DIR, "config.json"), "r", encoding="utf-8") as f:
@@ -98,9 +97,6 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 logger.debug('Discord client initialized')
 
-app = Flask(__name__)
-app.secret_key = FLASK_SECRET_KEY
-
 def load_prompt_data(path=PROMPT_DATA_PATH):
     logger.debug("Loading prompt data from %s", path)
     with open(path, "r", encoding="utf-8") as f:
@@ -155,334 +151,21 @@ def refresh_data():
 
 refresh_data()
 
+web.init_web(
+    CONFIG,
+    lambda: PROMPT_DATA,
+    save_prompt_data,
+    refresh_data,
+    LOG_DIR,
+    WEB_USERNAME,
+    WEB_PASSWORD,
+    BASE_DIR,
+    FLASK_SECRET_KEY,
+    logger,
+)
+
 current_weather = "Undetermined"
 weather_roll_date = None
-
-def login_required(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        if not session.get("logged_in"):
-            return redirect(url_for("login"))
-        return func(*args, **kwargs)
-    return wrapper
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        if username == WEB_USERNAME and password == WEB_PASSWORD:
-            session["logged_in"] = True
-            logger.info("User %s logged in", username)
-            return redirect(url_for("/"))
-        logger.warning("Failed login attempt for user %s", username)
-    return render_template("login.html")
-
-@app.route("/logout")
-def logout():
-    session.pop("logged_in", None)
-    logger.info("User logged out")
-    return redirect(url_for("login"))
-
-@app.route("/")
-def index():
-    return render_template("index.html")
-
-@app.route("/prompt_data")
-@login_required
-def prompt_data():
-    npc_count = len(PROMPT_DATA.get("npc", []))
-    player_count = len(PROMPT_DATA.get("spieler", []))
-    animal_count = len(PROMPT_DATA.get("tiere", []))
-    user_count = len(PROMPT_DATA.get("user_list", {}))
-    core_text = "vorhanden" if PROMPT_DATA.get("core") else "nicht gesetzt"
-    world_text = "vorhanden" if PROMPT_DATA.get("welt") else "nicht gesetzt"
-    return render_template(
-        "prompt_data.html",
-        npc_count=npc_count,
-        player_count=player_count,
-        animal_count=animal_count,
-        user_count=user_count,
-        core_text=core_text,
-        world_text=world_text,
-    )
-
-
-@app.route("/npcs")
-@login_required
-def npc_list():
-    all_npcs = sorted(n["name"].split()[0] for n in PROMPT_DATA.get("npc", []))
-    return render_template("npc_list.html", npcs=all_npcs)
-
-@app.route("/add", methods=["GET", "POST"])
-@login_required
-def add_npc():
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        short = request.form.get("short", "").strip()
-        long = request.form.get("long", "").strip()
-        if name and short:
-            npc_list = PROMPT_DATA.setdefault("npc", [])
-            npc_list.append({"name": name, "short": short, "long": long})
-            save_prompt_data(PROMPT_DATA)
-            refresh_data()
-            logger.info("Added NPC %s", name)
-            return redirect(url_for("npc_list"))
-    return render_template("add_npc.html")
-
-@app.route("/edit/<name>", methods=["GET", "POST"])
-@login_required
-def edit_npc(name):
-    npc_list = PROMPT_DATA.get("npc", [])
-    npc = next((n for n in npc_list if n["name"].split()[0] == name), None)
-    if npc is None:
-        logger.warning("NPC %s not found", name)
-        return "NPC not found", 404
-    if request.method == "POST":
-        npc["short"] = request.form.get("short", "").strip()
-        npc["long"] = request.form.get("long", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Edited NPC %s", name)
-        return redirect(url_for("npc_list"))
-    short_text = npc.get("short", "")
-    long_text = npc.get("long", "")
-    return render_template(
-        "edit_npc.html",
-        name=name,
-        short=short_text,
-        long=long_text,
-    )
-
-@app.route("/delete/<name>")
-@login_required
-def delete_npc(name):
-    npc_list = PROMPT_DATA.get("npc", [])
-    PROMPT_DATA["npc"] = [n for n in npc_list if n["name"].split()[0] != name]
-    save_prompt_data(PROMPT_DATA)
-    refresh_data()
-    logger.info("Deleted NPC %s", name)
-    return redirect(url_for("npc_list"))
-
-@app.route("/players")
-@login_required
-def player_list():
-    players = sorted(p["name"] for p in PROMPT_DATA.get("spieler", []))
-    return render_template("player_list.html", players=players)
-
-@app.route("/players/add", methods=["GET", "POST"])
-@login_required
-def add_player():
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        info = request.form.get("info", "").strip()
-        if name and info:
-            lst = PROMPT_DATA.setdefault("spieler", [])
-            lst.append({"name": name, "info": info})
-            save_prompt_data(PROMPT_DATA)
-            refresh_data()
-            logger.info("Added player %s", name)
-            return redirect(url_for("player_list"))
-    return render_template("add_player.html")
-
-@app.route("/players/edit/<name>", methods=["GET", "POST"])
-@login_required
-def edit_player(name):
-    players = PROMPT_DATA.get("spieler", [])
-    pl = next((p for p in players if p["name"] == name), None)
-    if pl is None:
-        logger.warning("Player %s not found", name)
-        return "Player not found", 404
-    if request.method == "POST":
-        pl["info"] = request.form.get("info", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Edited player %s", name)
-        return redirect(url_for("player_list"))
-    return render_template("edit_player.html", name=name, info=pl.get("info", ""))
-
-@app.route("/players/delete/<name>")
-@login_required
-def delete_player(name):
-    players = PROMPT_DATA.get("spieler", [])
-    PROMPT_DATA["spieler"] = [p for p in players if p["name"] != name]
-    save_prompt_data(PROMPT_DATA)
-    refresh_data()
-    logger.info("Deleted player %s", name)
-    return redirect(url_for("player_list"))
-
-@app.route("/animals")
-@login_required
-def animal_list():
-    animals = sorted(t["name"] for t in PROMPT_DATA.get("tiere", []))
-    return render_template("animal_list.html", animals=animals)
-
-@app.route("/animals/add", methods=["GET", "POST"])
-@login_required
-def add_animal():
-    if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        info = request.form.get("info", "").strip()
-        if name and info:
-            lst = PROMPT_DATA.setdefault("tiere", [])
-            lst.append({"name": name, "info": info})
-            save_prompt_data(PROMPT_DATA)
-            refresh_data()
-            logger.info("Added animal %s", name)
-            return redirect(url_for("animal_list"))
-    return render_template("add_animal.html")
-
-@app.route("/animals/edit/<name>", methods=["GET", "POST"])
-@login_required
-def edit_animal(name):
-    animals = PROMPT_DATA.get("tiere", [])
-    an = next((a for a in animals if a["name"] == name), None)
-    if an is None:
-        logger.warning("Animal %s not found", name)
-        return "Animal not found", 404
-    if request.method == "POST":
-        an["info"] = request.form.get("info", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Edited animal %s", name)
-        return redirect(url_for("animal_list"))
-    return render_template("edit_animal.html", name=name, info=an.get("info", ""))
-
-@app.route("/animals/delete/<name>")
-@login_required
-def delete_animal(name):
-    animals = PROMPT_DATA.get("tiere", [])
-    PROMPT_DATA["tiere"] = [a for a in animals if a["name"] != name]
-    save_prompt_data(PROMPT_DATA)
-    refresh_data()
-    logger.info("Deleted animal %s", name)
-    return redirect(url_for("animal_list"))
-
-@app.route("/world", methods=["GET", "POST"])
-@login_required
-def edit_world():
-    if request.method == "POST":
-        PROMPT_DATA["welt"] = request.form.get("welt", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("World description updated")
-        return redirect(url_for("npc_list"))
-    return render_template(
-        "edit_world.html",
-        welt=PROMPT_DATA.get("welt", ""),
-    )
-
-@app.route("/core", methods=["GET", "POST"])
-@login_required
-def edit_core():
-    if request.method == "POST":
-        PROMPT_DATA["core"] = request.form.get("core", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Core description updated")
-        return redirect(url_for("npc_list"))
-    return render_template(
-        "edit_core.html",
-        core=PROMPT_DATA.get("core", ""),
-    )
-
-@app.route("/weather", methods=["GET", "POST"])
-@login_required
-def edit_weather():
-    if request.method == "POST":
-        wt = {str(i): request.form.get(str(i), "").strip() for i in range(1, 21)}
-        PROMPT_DATA["weather_table"] = wt
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Weather table updated")
-        return redirect(url_for("prompt_data"))
-    weather = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
-    return render_template("edit_weather.html", weather=weather)
-
-@app.route("/users")
-@login_required
-def user_list():
-    users = PROMPT_DATA.get("user_list", {})
-    return render_template("user_list.html", users=users)
-
-@app.route("/users/add", methods=["GET", "POST"])
-@login_required
-def add_user():
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        character = request.form.get("character", "").strip()
-        if username and character:
-            PROMPT_DATA.setdefault("user_list", {})[username] = character
-            save_prompt_data(PROMPT_DATA)
-            refresh_data()
-            logger.info("Added user %s with character %s", username, character)
-            return redirect(url_for("user_list"))
-    return render_template("add_user.html")
-
-@app.route("/users/edit/<username>", methods=["GET", "POST"])
-@login_required
-def edit_user(username):
-    users = PROMPT_DATA.get("user_list", {})
-    if username not in users:
-        logger.warning("User %s not found", username)
-        return "User not found", 404
-    if request.method == "POST":
-        users[username] = request.form.get("character", "").strip()
-        save_prompt_data(PROMPT_DATA)
-        refresh_data()
-        logger.info("Edited user %s", username)
-        return redirect(url_for("user_list"))
-    return render_template("edit_user.html", username=username, character=users[username])
-
-@app.route("/users/delete/<username>")
-@login_required
-def delete_user(username):
-    users = PROMPT_DATA.get("user_list", {})
-    users.pop(username, None)
-    save_prompt_data(PROMPT_DATA)
-    refresh_data()
-    return redirect(url_for("user_list"))
-
-@app.route("/logs")
-@login_required
-def view_logs():
-    log_files = [f for f in os.listdir(LOG_DIR) if f.endswith(".log")]
-    selected_log = request.args.get("log")
-    content = ""
-    if selected_log in log_files:
-        with open(os.path.join(LOG_DIR, selected_log), "r", encoding="utf-8") as f:
-            content = f.read()
-    return render_template(
-        "logs.html",
-        log_files=log_files,
-        selected_log=selected_log,
-        log_content=content,
-    )
-
-@app.route("/settings", methods=["GET", "POST"])
-@login_required
-def settings():
-    config_path = os.path.join(BASE_DIR, "config.json")
-    error = None
-    if request.method == "POST":
-        raw = request.form.get("config", "")
-        try:
-            new_config = json.loads(raw)
-            with open(config_path, "r", encoding="utf-8") as f:
-                current = json.load(f)
-            new_config["webserver"] = current.get("webserver", {})
-            with open(config_path, "w", encoding="utf-8") as f:
-                json.dump(new_config, f, ensure_ascii=False, indent=2)
-            global CONFIG
-            CONFIG = new_config
-            return redirect(url_for("settings"))
-        except json.JSONDecodeError:
-            error = "Ungültiges JSON."
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
-    cfg.pop("webserver", None)
-    cfg_json = json.dumps(cfg, ensure_ascii=False, indent=2)
-    return render_template("settings.html", config=cfg_json, error=error)
 
 def get_random_npc():
     return random.choice(NPC_LIST)
@@ -623,7 +306,7 @@ async def hourly_post():
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
 def run_flask():
-    app.run(host=WEB_HOST, port=WEB_PORT)
+    web.app.run(host=WEB_HOST, port=WEB_PORT)
 
 if __name__ == '__main__':
     Thread(target=run_flask, daemon=True).start()
