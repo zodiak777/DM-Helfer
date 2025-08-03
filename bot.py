@@ -95,10 +95,12 @@ def build_pre_prompt(data: dict) -> str:
     return "\n\n".join(parts)
 
 def refresh_data():
-    global PROMPT_DATA, PRE_PROMPT, NPC_LIST
+    global PROMPT_DATA, PRE_PROMPT, NPC_LIST, WEATHER_TABLE, USER_LIST
     PROMPT_DATA = load_prompt_data()
     PRE_PROMPT = build_pre_prompt(PROMPT_DATA)
     NPC_LIST = sorted({n["name"].split()[0] for n in PROMPT_DATA.get("npc", [])})
+    WEATHER_TABLE = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
+    USER_LIST = PROMPT_DATA.get("user_list", {})
 
 logger.debug('Pre prompt geladen')
 
@@ -106,44 +108,8 @@ current_weather = "Unbestimmt"
 weather_roll_date = None
 
 NPC_LIST: list[str] = []
-
-WEATHER_TABLE = {
-    1: "glühende Hitze",
-    2: "sehr heiße Sonne",
-    3: "heiße Temperaturen",
-    4: "warm und sonnig",
-    5: "angenehm warm",
-    6: "milder Sonnenschein",
-    7: "warmer Sonnenschein",
-    8: "leicht Bewölkt",
-    9: "bewölkt",
-    10: "wolkig",
-    11: "leichter Regen",
-    12: "nieselnder Regen",
-    13: "mäßiger Regen",
-    14: "anhaltender Regen",
-    15: "starker Regen",
-    16: "Regen mit starkem Wind",
-    17: "Gewitter",
-    18: "heftiges Gewitter",
-    19: "Platzregen",
-    20: "extremer Platzregen",
-}
-
-user_list = {
-    "zodiak6610": "Spielleiter",
-    "delailajana": "Bella",
-    "epimetheus.": "Epizard",
-    "dewarr1": "Rashar",
-    "fritzifitzgerald.": "Fritzi",
-    "pinkdevli692": "Joanne",
-    "itsamereiki": "Reiki",
-    "flohoehoe": "Casmir",
-    "spielhorst": "Horst",
-    "tibolonius": "Vex",
-    ".wolfgrimm": "Katazur",
-    "DM-Helfer#7090": "DM-Helfer"
-}
+WEATHER_TABLE: dict[int, str] = {}
+USER_LIST: dict[str, str] = {}
 
 def login_required(func):
     @wraps(func)
@@ -172,6 +138,7 @@ def dashboard():
     npc_count = len(PROMPT_DATA.get("npc", []))
     player_count = len(PROMPT_DATA.get("spieler", []))
     animal_count = len(PROMPT_DATA.get("tiere", []))
+    user_count = len(PROMPT_DATA.get("user_list", {}))
     core_text = "vorhanden" if PROMPT_DATA.get("core") else "nicht gesetzt"
     world_text = "vorhanden" if PROMPT_DATA.get("welt") else "nicht gesetzt"
     return render_template(
@@ -179,6 +146,7 @@ def dashboard():
         npc_count=npc_count,
         player_count=player_count,
         animal_count=animal_count,
+        user_count=user_count,
         core_text=core_text,
         world_text=world_text,
     )
@@ -348,6 +316,59 @@ def edit_core():
         core=PROMPT_DATA.get("core", ""),
     )
 
+@app.route("/weather", methods=["GET", "POST"])
+@login_required
+def edit_weather():
+    if request.method == "POST":
+        wt = {str(i): request.form.get(str(i), "").strip() for i in range(1, 21)}
+        PROMPT_DATA["weather_table"] = wt
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("dashboard"))
+    weather = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
+    return render_template("edit_weather.html", weather=weather)
+
+@app.route("/users")
+@login_required
+def user_list():
+    users = PROMPT_DATA.get("user_list", {})
+    return render_template("user_list.html", users=users)
+
+@app.route("/users/add", methods=["GET", "POST"])
+@login_required
+def add_user():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        character = request.form.get("character", "").strip()
+        if username and character:
+            PROMPT_DATA.setdefault("user_list", {})[username] = character
+            save_prompt_data(PROMPT_DATA)
+            refresh_data()
+            return redirect(url_for("user_list"))
+    return render_template("add_user.html")
+
+@app.route("/users/edit/<username>", methods=["GET", "POST"])
+@login_required
+def edit_user(username):
+    users = PROMPT_DATA.get("user_list", {})
+    if username not in users:
+        return "User not found", 404
+    if request.method == "POST":
+        users[username] = request.form.get("character", "").strip()
+        save_prompt_data(PROMPT_DATA)
+        refresh_data()
+        return redirect(url_for("user_list"))
+    return render_template("edit_user.html", username=username, character=users[username])
+
+@app.route("/users/delete/<username>")
+@login_required
+def delete_user(username):
+    users = PROMPT_DATA.get("user_list", {})
+    users.pop(username, None)
+    save_prompt_data(PROMPT_DATA)
+    refresh_data()
+    return redirect(url_for("user_list"))
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
@@ -431,7 +452,7 @@ async def generate_and_send(input, npc_name: str | None = None):
 async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
     messages = []
     async for msg in channel.history(limit=limit, before=before, oldest_first=False):
-        messages.append(f"{user_list[str(msg.author)]}: {msg.content}")
+        messages.append(f"{USER_LIST[str(msg.author)]}: {msg.content}")
     messages.reverse()
     return "\n".join(messages)
 
@@ -442,7 +463,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     input_text = (
         f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
-        f"Nachricht von {user_list[str(trigger_message.author)]}: {trigger_message.content}"
+        f"Nachricht von {USER_LIST[str(trigger_message.author)]}: {trigger_message.content}"
     )
     await generate_and_send(input_text, npc_name)
 
