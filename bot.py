@@ -421,6 +421,22 @@ def delete_user(username):
     refresh_data()
     return redirect(url_for("user_list"))
 
+@app.route("/logs")
+@login_required
+def view_logs():
+    log_files = [f for f in os.listdir(LOG_DIR) if f.endswith(".log")]
+    selected_log = request.args.get("log")
+    content = ""
+    if selected_log in log_files:
+        with open(os.path.join(LOG_DIR, selected_log), "r", encoding="utf-8") as f:
+            content = f.read()
+    return render_template(
+        "logs.html",
+        log_files=log_files,
+        selected_log=selected_log,
+        log_content=content,
+    )
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
