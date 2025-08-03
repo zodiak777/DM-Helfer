@@ -1,0 +1,28 @@
+{
+  "logging": {
+    "log_dir": "./logs",
+    "log_level": "INFO"
+  },
+  "data_paths": {
+    "prompt_data": "./data/prompt_data.json"
+  },
+  "openai": {
+    "model": "gpt-4.1",
+    "max_tokens": 1024
+  },
+  "discord": {
+    "task_interval_hours": 1,
+    "daily_weather_hour": 8,
+    "silent_hours": [
+      1,
+      8
+    ],
+    "post_probability_percent": 5,
+    "min_seconds_since_user_post": 3600,
+    "context_message_limit": 10
+  },
+  "webserver": {
+    "host": "0.0.0.0",
+    "port": 5000
+  }
+}
