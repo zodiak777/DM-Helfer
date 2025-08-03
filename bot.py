@@ -459,6 +459,31 @@ def view_logs():
         log_content=content,
     )
 
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    config_path = os.path.join(BASE_DIR, "config.json")
+    error = None
+    if request.method == "POST":
+        raw = request.form.get("config", "")
+        try:
+            new_config = json.loads(raw)
+            with open(config_path, "r", encoding="utf-8") as f:
+                current = json.load(f)
+            new_config["webserver"] = current.get("webserver", {})
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(new_config, f, ensure_ascii=False, indent=2)
+            global CONFIG
+            CONFIG = new_config
+            return redirect(url_for("settings"))
+        except json.JSONDecodeError:
+            error = "Ungültiges JSON."
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    cfg.pop("webserver", None)
+    cfg_json = json.dumps(cfg, ensure_ascii=False, indent=2)
+    return render_template("settings.html", config=cfg_json, error=error)
+
 def get_random_npc():
     return random.choice(NPC_LIST)
 
