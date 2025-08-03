@@ -123,5 +123,41 @@
       "short": "Edwin Chrom ist ein charismatischer Soldat mit losem Mundwerk und einem schrägen Humor, den er für unwiderstehlich hält. Trotz seiner spöttischen Art steht er fest zu seinem Trupp und beeindruckt durch Lösungsorientierung und Kochkünste. Sein Witz bremste zwar seine Karriere, doch seine Beliebtheit unter den Kameraden bleibt ungebrochen.",
       "long": "Edwin Chrom\r\nRasse: Mensch\r\nGeschlecht: Männlich\r\nAlter: 43\r\nAnstellung: Soldat in Joanne´s Kaserne\r\nGesinnung: Rechtschaffen Böse\r\nFraktion: ehemaliger Soldat der flammenden Faust, im Trupp von Joanne Hareka\r\nPersönlichkeit:\r\nEdwin hat einen speziellen Charakter. Er hält sich für überaus lustig und liebt es sich über andere lustig zu machen. Er hält immer unabdingbar zu seinen Kameraden und Kameradinnen. Edwin ist lösungsorientiert und hört nicht auf zu reden, wenn er erstmal angefangen hat. Diese Kombination macht ihn zu einem sehr charismatischen und beliebten Krieger. Sein Aufstieg innerhalb der flammenden Faust wurde durch seine alberne Art gebremst. Edwin Chrom war in seiner Zeit vor der flammenden Faust ein einfacher Koch. Die Speisen die er auch in seiner aktuellen Dienstzeit zubereitet hat war für seine Gefährten immer eine große Freude."
     }
-  ]
+  ],
+  "weather_table": {
+    "1": "glühende Hitze",
+    "2": "sehr heiße Sonne",
+    "3": "heiße Temperaturen",
+    "4": "warm und sonnig",
+    "5": "angenehm warm",
+    "6": "milder Sonnenschein",
+    "7": "warmer Sonnenschein",
+    "8": "leicht Bewölkt",
+    "9": "bewölkt",
+    "10": "wolkig",
+    "11": "leichter Regen",
+    "12": "nieselnder Regen",
+    "13": "mäßiger Regen",
+    "14": "anhaltender Regen",
+    "15": "starker Regen",
+    "16": "Regen mit starkem Wind",
+    "17": "Gewitter",
+    "18": "heftiges Gewitter",
+    "19": "Platzregen",
+    "20": "extremer Platzregen"
+  },
+  "user_list": {
+    "zodiak6610": "Spielleiter",
+    "delailajana": "Bella",
+    "epimetheus.": "Epizard",
+    "dewarr1": "Rashar",
+    "fritzifitzgerald.": "Fritzi",
+    "pinkdevli692": "Joanne",
+    "itsamereiki": "Reiki",
+    "flohoehoe": "Casmir",
+    "spielhorst": "Horst",
+    "tibolonius": "Vex",
+    ".wolfgrimm": "Katazur",
+    "DM-Helfer#7090": "DM-Helfer"
+  }
 }
