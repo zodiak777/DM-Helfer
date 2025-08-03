@@ -55,44 +55,41 @@ WEB_USERNAME = os.getenv('WEB_USERNAME')
 WEB_PASSWORD = os.getenv('WEB_PASSWORD')
 FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'secret')
 
-logger.debug("Env vars geladen: CHANNEL_ID=%s", CHANNEL_ID)
+logger.debug("Loaded environment variables: CHANNEL_ID=%s", CHANNEL_ID)
 
 if DISCORD_TOKEN is None:
-    logger.error('DISCORD_TOKEN environment variable nicht gesetzt')
-    raise RuntimeError('DISCORD_TOKEN environment variable nicht gesetzt')
+    raise RuntimeError('DISCORD_TOKEN environment variable is not set')
 
 if OPENAI_API_KEY is None:
-    logger.error('OPENAI_API_KEY environment variable nicht gesetzt')
-    raise RuntimeError('OPENAI_API_KEY environment variable nicht gesetzt')
+    raise RuntimeError('OPENAI_API_KEY environment variable is not set')
 
 if CHANNEL_ID is None:
-    logger.error('CHANNEL_ID environment variable nicht gesetzt')
-    raise RuntimeError('CHANNEL_ID environment variable nicht gesetzt')
+    raise RuntimeError('CHANNEL_ID environment variable is not set')
 
 if WEB_USERNAME is None or WEB_PASSWORD is None:
-    logger.error('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
-    raise RuntimeError('WEB_USERNAME oder WEB_PASSWORD nicht gesetzt')
+    raise RuntimeError('WEB_USERNAME or WEB_PASSWORD is not set')
 
 CHANNEL_ID = int(CHANNEL_ID)
 
 openai.api_key = OPENAI_API_KEY
-logger.debug('OpenAI API key geladen')
+logger.debug('OpenAI API key loaded')
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
-logger.debug('Discord client initialisiert')
+logger.debug('Discord client initialized')
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
 
 def load_prompt_data(path="prompt_data.json"):
-    logger.debug("Lade Prompt-Daten aus %s", path)
+    logger.debug("Loading prompt data from %s", path)
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 def save_prompt_data(data: dict, path="prompt_data.json"):
+    logger.debug("Saving prompt data to %s", path)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -119,6 +116,10 @@ def build_pre_prompt(data: dict) -> str:
     parts.append(section_title + "\n" + data.get("welt", ""))
     return "\n\n".join(parts)
 
+NPC_LIST: list[str] = []
+WEATHER_TABLE: dict[int, str] = {}
+USER_LIST: dict[str, str] = {}
+
 def refresh_data():
     global PROMPT_DATA, PRE_PROMPT, NPC_LIST, WEATHER_TABLE, USER_LIST
     PROMPT_DATA = load_prompt_data()
@@ -126,15 +127,18 @@ def refresh_data():
     NPC_LIST = sorted({n["name"].split()[0] for n in PROMPT_DATA.get("npc", [])})
     WEATHER_TABLE = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
     USER_LIST = PROMPT_DATA.get("user_list", {})
+    logger.debug(
+        "Prompt data refreshed: %d NPCs, %d players, %d animals, %d users",
+        len(NPC_LIST),
+        len(PROMPT_DATA.get("spieler", [])),
+        len(PROMPT_DATA.get("tiere", [])),
+        len(USER_LIST),
+    )
 
-logger.debug('Pre prompt geladen')
+refresh_data()
 
-current_weather = "Unbestimmt"
+current_weather = "Undetermined"
 weather_roll_date = None
-
-NPC_LIST: list[str] = []
-WEATHER_TABLE: dict[int, str] = {}
-USER_LIST: dict[str, str] = {}
 
 def login_required(func):
     @wraps(func)
@@ -147,14 +151,19 @@ def login_required(func):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form.get("username") == WEB_USERNAME and request.form.get("password") == WEB_PASSWORD:
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username == WEB_USERNAME and password == WEB_PASSWORD:
             session["logged_in"] = True
+            logger.info("User %s logged in", username)
             return redirect(url_for("dashboard"))
+        logger.warning("Failed login attempt for user %s", username)
     return render_template("login.html")
 
 @app.route("/logout")
 def logout():
     session.pop("logged_in", None)
+    logger.info("User logged out")
     return redirect(url_for("login"))
 
 @app.route("/")
@@ -195,6 +204,7 @@ def add_npc():
             npc_list.append({"name": name, "short": short, "long": long})
             save_prompt_data(PROMPT_DATA)
             refresh_data()
+            logger.info("Added NPC %s", name)
             return redirect(url_for("npc_list"))
     return render_template("add_npc.html")
 
@@ -204,12 +214,14 @@ def edit_npc(name):
     npc_list = PROMPT_DATA.get("npc", [])
     npc = next((n for n in npc_list if n["name"].split()[0] == name), None)
     if npc is None:
+        logger.warning("NPC %s not found", name)
         return "NPC not found", 404
     if request.method == "POST":
         npc["short"] = request.form.get("short", "").strip()
         npc["long"] = request.form.get("long", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Edited NPC %s", name)
         return redirect(url_for("npc_list"))
     short_text = npc.get("short", "")
     long_text = npc.get("long", "")
@@ -227,6 +239,7 @@ def delete_npc(name):
     PROMPT_DATA["npc"] = [n for n in npc_list if n["name"].split()[0] != name]
     save_prompt_data(PROMPT_DATA)
     refresh_data()
+    logger.info("Deleted NPC %s", name)
     return redirect(url_for("npc_list"))
 
 @app.route("/players")
@@ -246,6 +259,7 @@ def add_player():
             lst.append({"name": name, "info": info})
             save_prompt_data(PROMPT_DATA)
             refresh_data()
+            logger.info("Added player %s", name)
             return redirect(url_for("player_list"))
     return render_template("add_player.html")
 
@@ -255,11 +269,13 @@ def edit_player(name):
     players = PROMPT_DATA.get("spieler", [])
     pl = next((p for p in players if p["name"] == name), None)
     if pl is None:
-        return "Spieler not found", 404
+        logger.warning("Player %s not found", name)
+        return "Player not found", 404
     if request.method == "POST":
         pl["info"] = request.form.get("info", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Edited player %s", name)
         return redirect(url_for("player_list"))
     return render_template("edit_player.html", name=name, info=pl.get("info", ""))
 
@@ -270,6 +286,7 @@ def delete_player(name):
     PROMPT_DATA["spieler"] = [p for p in players if p["name"] != name]
     save_prompt_data(PROMPT_DATA)
     refresh_data()
+    logger.info("Deleted player %s", name)
     return redirect(url_for("player_list"))
 
 @app.route("/animals")
@@ -289,6 +306,7 @@ def add_animal():
             lst.append({"name": name, "info": info})
             save_prompt_data(PROMPT_DATA)
             refresh_data()
+            logger.info("Added animal %s", name)
             return redirect(url_for("animal_list"))
     return render_template("add_animal.html")
 
@@ -298,11 +316,13 @@ def edit_animal(name):
     animals = PROMPT_DATA.get("tiere", [])
     an = next((a for a in animals if a["name"] == name), None)
     if an is None:
-        return "Tier not found", 404
+        logger.warning("Animal %s not found", name)
+        return "Animal not found", 404
     if request.method == "POST":
         an["info"] = request.form.get("info", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Edited animal %s", name)
         return redirect(url_for("animal_list"))
     return render_template("edit_animal.html", name=name, info=an.get("info", ""))
 
@@ -313,6 +333,7 @@ def delete_animal(name):
     PROMPT_DATA["tiere"] = [a for a in animals if a["name"] != name]
     save_prompt_data(PROMPT_DATA)
     refresh_data()
+    logger.info("Deleted animal %s", name)
     return redirect(url_for("animal_list"))
 
 @app.route("/world", methods=["GET", "POST"])
@@ -322,6 +343,7 @@ def edit_world():
         PROMPT_DATA["welt"] = request.form.get("welt", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("World description updated")
         return redirect(url_for("npc_list"))
     return render_template(
         "edit_world.html",
@@ -335,6 +357,7 @@ def edit_core():
         PROMPT_DATA["core"] = request.form.get("core", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Core description updated")
         return redirect(url_for("npc_list"))
     return render_template(
         "edit_core.html",
@@ -349,6 +372,7 @@ def edit_weather():
         PROMPT_DATA["weather_table"] = wt
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Weather table updated")
         return redirect(url_for("dashboard"))
     weather = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
     return render_template("edit_weather.html", weather=weather)
@@ -369,6 +393,7 @@ def add_user():
             PROMPT_DATA.setdefault("user_list", {})[username] = character
             save_prompt_data(PROMPT_DATA)
             refresh_data()
+            logger.info("Added user %s with character %s", username, character)
             return redirect(url_for("user_list"))
     return render_template("add_user.html")
 
@@ -377,11 +402,13 @@ def add_user():
 def edit_user(username):
     users = PROMPT_DATA.get("user_list", {})
     if username not in users:
+        logger.warning("User %s not found", username)
         return "User not found", 404
     if request.method == "POST":
         users[username] = request.form.get("character", "").strip()
         save_prompt_data(PROMPT_DATA)
         refresh_data()
+        logger.info("Edited user %s", username)
         return redirect(url_for("user_list"))
     return render_template("edit_user.html", username=username, character=users[username])
 
@@ -399,8 +426,8 @@ def get_random_npc():
 
 def roll_weather():
     roll = random.randint(1, 20)
-    desc = WEATHER_TABLE.get(roll, "Unbekannt")
-    logger.info("Wetter roll %s => %s", roll, desc)
+    desc = WEATHER_TABLE.get(roll, "Unknown")
+    logger.info("Weather roll %s => %s", roll, desc)
     return desc
 
 @client.event
@@ -408,6 +435,7 @@ async def on_ready():
     await tree.sync()
     hourly_post.start()
     refresh_data()
+    logger.info("Logged in as %s", client.user)
 
 @client.event
 async def on_message(message: discord.Message):
@@ -429,6 +457,7 @@ async def on_message(message: discord.Message):
 async def force_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     npc = get_random_npc()
+    logger.info("Force command triggered by %s using NPC %s", interaction.user, npc)
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
@@ -438,9 +467,9 @@ def load_npc_extension(npc_name: str) -> str:
         if npc["name"].split()[0] == base:
             extra = npc.get("long", "")
             if extra:
-                logger.debug("NPC-Erweiterung für %s gefunden", npc_name)
+                logger.debug("Found NPC extension for %s", npc_name)
                 return extra
-    logger.debug("Keine NPC-Erweiterung für %s gefunden", npc_name)
+    logger.debug("No NPC extension found for %s", npc_name)
     return ""
 
 async def generate_and_send(input, npc_name: str | None = None):
@@ -452,7 +481,7 @@ async def generate_and_send(input, npc_name: str | None = None):
             parts.append(extra)
     parts.append(f"Es ist aktuell {current_time} Uhr. Das Wetter heute: {current_weather}.")
     prompt = "\n\n".join(parts)
-    logger.debug('Prompt an OpenAI gesendet: %s', prompt)
+    logger.debug('Prompt sent to OpenAI: %s', prompt)
     channel = client.get_channel(CHANNEL_ID)
 
     try:
@@ -470,9 +499,9 @@ async def generate_and_send(input, npc_name: str | None = None):
         message = response.choices[0].message.content.strip()
         logger.debug('OpenAI response: %s', message)
         await channel.send(message)
-        logger.info('Message an Channel %s gesendet.', channel.id)
+        logger.info('Message sent to channel %s', channel.id)
     except Exception:
-        logger.error('Fehler beim Nachricht senden: ', exc_info=True)
+        logger.error('Error while sending message', exc_info=True)
 
 async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, before: discord.Message | None = None):
     messages = []
@@ -482,7 +511,7 @@ async def get_recent_messages(channel: discord.TextChannel, limit: int = 10, bef
     return "\n".join(messages)
 
 async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
-    logger.info('Generiere Antwort als %s', npc_name)
+    logger.info('Generating reply as %s', npc_name)
     channel = client.get_channel(CHANNEL_ID)
     context = await get_recent_messages(channel, limit=10, before=trigger_message)
     input_text = (
@@ -494,7 +523,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
 
 @tasks.loop(hours=1)
 async def hourly_post():
-    logger.debug('stündlicher post')
+    logger.debug('Hourly post task triggered')
     now = datetime.now()
     global current_weather, weather_roll_date
 
@@ -502,14 +531,14 @@ async def hourly_post():
         current_weather = roll_weather()
         weather_roll_date = now.date()
         await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
-        logger.info('Tägliches wetter Bestimmt: %s', current_weather)
+        logger.info('Daily weather determined: %s', current_weather)
 
     if 1 <= now.hour <= 8:
-        logger.debug('Stille Stunde')
+        logger.debug('Quiet hour')
         return
 
     if random.random() > 0.05:
-        logger.debug('Kein post')
+        logger.debug('No post this hour')
         return
 
     try:
@@ -521,7 +550,7 @@ async def hourly_post():
         if last_message is not None:
             age = discord.utils.utcnow() - last_message.created_at
             if age.total_seconds() < 3600:
-                logger.debug('Letzte nachricht erst %s sekunden alt; übersprungen', age.total_seconds())
+                logger.debug('Last message only %s seconds old; skipped', age.total_seconds())
                 return
     except Exception:
         logger.error('Error fetching channel history', exc_info=True)
