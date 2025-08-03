@@ -156,7 +156,7 @@ def login():
         if username == WEB_USERNAME and password == WEB_PASSWORD:
             session["logged_in"] = True
             logger.info("User %s logged in", username)
-            return redirect(url_for("dashboard"))
+            return redirect(url_for("/"))
         logger.warning("Failed login attempt for user %s", username)
     return render_template("login.html")
 
@@ -167,8 +167,12 @@ def logout():
     return redirect(url_for("login"))
 
 @app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/prompt_data")
 @login_required
-def dashboard():
+def prompt_data():
     npc_count = len(PROMPT_DATA.get("npc", []))
     player_count = len(PROMPT_DATA.get("spieler", []))
     animal_count = len(PROMPT_DATA.get("tiere", []))
@@ -176,7 +180,7 @@ def dashboard():
     core_text = "vorhanden" if PROMPT_DATA.get("core") else "nicht gesetzt"
     world_text = "vorhanden" if PROMPT_DATA.get("welt") else "nicht gesetzt"
     return render_template(
-        "dashboard.html",
+        "prompt_data.html",
         npc_count=npc_count,
         player_count=player_count,
         animal_count=animal_count,
@@ -373,7 +377,7 @@ def edit_weather():
         save_prompt_data(PROMPT_DATA)
         refresh_data()
         logger.info("Weather table updated")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("prompt_data"))
     weather = {int(k): v for k, v in PROMPT_DATA.get("weather_table", {}).items()}
     return render_template("edit_weather.html", weather=weather)
 
