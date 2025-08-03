@@ -1,10 +1,12 @@
 {% extends 'layout.html' %}
 {% block content %}
-<div class="back"><a href="{{ url_for('dashboard') }}">Zurück</a></div>
-<h1>Core-Anweisungen</h1>
+<a class="btn btn-secondary mb-3" href="{{ url_for('dashboard') }}">Zurück</a>
+<h1 class="mb-4">Core-Anweisungen</h1>
 <form method="post">
-    Core:<br>
-    <textarea name="core" rows="10">{{ core }}</textarea><br>
-    <button type="submit">Speichern</button>
+    <div class="mb-3">
+        <label for="core" class="form-label">Core</label>
+        <textarea class="form-control" id="core" name="core" rows="10">{{ core }}</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
 </form>
 {% endblock %}
