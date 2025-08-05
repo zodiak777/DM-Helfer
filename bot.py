@@ -194,10 +194,11 @@ async def on_message(message: discord.Message):
     if message.channel.id != CHANNEL_ID:
         return
     content_lower = message.content.lower()
-    for npc in NPC_LIST:
-        if npc.lower() in content_lower:
-            await reply_as_npc(npc, message)
-            break
+    npcs_in_message = sorted({npc for npc in NPC_LIST if npc.lower() in content_lower})
+    if len(npcs_in_message) == 1:
+        await reply_as_npc(npcs_in_message[0], message)
+    elif len(npcs_in_message) > 1:
+        await reply_as_npcs(npcs_in_message, message)
 
 @tree.command(name="force", description="Sofort eine Nachricht posten")
 async def force_command(interaction: discord.Interaction):
@@ -218,13 +219,16 @@ def load_npc_extension(npc_name: str) -> str:
     logger.debug("No NPC extension found for %s", npc_name)
     return ""
 
-async def generate_and_send(input, npc_name: str | None = None):
+async def generate_and_send(input, npc_names: list[str] | str | None = None):
     current_time = datetime.now().strftime('%H:%M')
     parts = [PRE_PROMPT]
-    if npc_name:
-        extra = load_npc_extension(npc_name)
-        if extra:
-            parts.append(extra)
+    if npc_names:
+        if isinstance(npc_names, str):
+            npc_names = [npc_names]
+        for npc_name in npc_names:
+            extra = load_npc_extension(npc_name)
+            if extra:
+                parts.append(extra)
     parts.append(f"Es ist aktuell {current_time} Uhr. Das Wetter heute: {current_weather}.")
     prompt = "\n\n".join(parts)
     logger.debug('Prompt sent to OpenAI: %s', prompt)
@@ -266,6 +270,19 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
         f"Nachricht von {USER_LIST[str(trigger_message.author)]}: {trigger_message.content}"
     )
     await generate_and_send(input_text, npc_name)
+
+async def reply_as_npcs(npc_names: list[str], trigger_message: discord.Message):
+    logger.info('Generating reply as %s', ", ".join(npc_names))
+    channel = client.get_channel(CHANNEL_ID)
+    context = await get_recent_messages(channel, limit=CONTEXT_MESSAGE_LIMIT, before=trigger_message)
+    names_line = ", ".join(npc_names)
+    input_text = (
+        f"Kontext der letzten Nachrichten:\n{context}\n\n"
+        f"Antworte auf folgende Nachricht. Übernehme dabei nacheinander die Rollen der folgenden Charaktere in einer einzigen Nachricht."
+        f" Beginne jede Antwort mit dem jeweiligen Namen:\n{names_line}\n"
+        f"Nachricht von {USER_LIST[str(trigger_message.author)]}: {trigger_message.content}"
+    )
+    await generate_and_send(input_text, npc_names)
 
 @tasks.loop(hours=TASK_INTERVAL_HOURS)
 async def hourly_post():
