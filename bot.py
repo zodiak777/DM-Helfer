@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from threading import Thread
 from dotenv import load_dotenv
-import openai
+from openai import OpenAI
 import discord
 from discord.ext import tasks
 from discord import app_commands
@@ -88,8 +88,8 @@ if WEB_USERNAME is None or WEB_PASSWORD is None:
 
 CHANNEL_ID = int(CHANNEL_ID)
 
-openai.api_key = OPENAI_API_KEY
-logger.debug('OpenAI API key loaded')
+openai_client = OpenAI(api_key=OPENAI_API_KEY)
+logger.debug('OpenAI client initialized')
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -235,18 +235,15 @@ async def generate_and_send(input, npc_names: list[str] | str | None = None):
     channel = client.get_channel(CHANNEL_ID)
 
     try:
-        response = openai.chat.completions.create(
+        response = openai_client.responses.create(
             model=OPENAI_MODEL,
-            messages=[
-                {'role': 'system', 'content': prompt},
-                {
-                    'role': 'user',
-                    'content': input
-                },
+            input=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": input},
             ],
-            max_completion_tokens=OPENAI_MAX_TOKENS,
+            max_output_tokens=OPENAI_MAX_TOKENS,
         )
-        message = response.choices[0].message.content.strip()
+        message = response.output_text.strip()
         logger.debug('OpenAI response: %s', message)
         await channel.send(message)
         logger.info('Message sent to channel %s', channel.id)
