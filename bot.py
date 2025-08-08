@@ -61,7 +61,7 @@ for name, level in [
     file_handler.addFilter(LevelFilter(level))
     file_handler.setFormatter(formatter)
     root_logger.addHandler(file_handler)
-    
+
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -241,11 +241,13 @@ async def generate_and_send(input, npc_names: list[str] | str | None = None):
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": input},
             ],
+            reasoning={"effort": "low"},
             max_output_tokens=OPENAI_MAX_TOKENS,
         )
         message = response.output_text.strip()
         logger.debug('OpenAI response: %s', message)
         await channel.send(message)
+        print(response)
         logger.info('Message sent to channel %s', channel.id)
     except Exception:
         logger.error('Error while sending message', exc_info=True)
