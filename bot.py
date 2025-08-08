@@ -244,7 +244,7 @@ async def generate_and_send(input, npc_names: list[str] | str | None = None):
                     'content': input
                 },
             ],
-            max_tokens=OPENAI_MAX_TOKENS,
+            max_completion_tokens=OPENAI_MAX_TOKENS,
         )
         message = response.choices[0].message.content.strip()
         logger.debug('OpenAI response: %s', message)
