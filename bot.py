@@ -246,8 +246,9 @@ async def generate_and_send(input, npc_names: list[str] | str | None = None):
         )
         message = response.output_text.strip()
         logger.debug('OpenAI response: %s', message)
-        await channel.send(message)
-        print(response)
+        if not ("[none]" or "none") in message:
+            await channel.send(message)
+            print(message)
         logger.info('Message sent to channel %s', channel.id)
     except Exception:
         logger.error('Error while sending message', exc_info=True)
@@ -266,6 +267,7 @@ async def reply_as_npc(npc_name: str, trigger_message: discord.Message):
     input_text = (
         f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte als {npc_name} auf folgende Nachricht. Halte dich an die Stilrichtlinien.\n"
+        f"Wenn es keinen Sinn ergibt, dass {npc_name} darauf reagiert, antworte ausschließlich mit [none].\n"
         f"Nachricht von {USER_LIST[str(trigger_message.author)]}: {trigger_message.content}"
     )
     await generate_and_send(input_text, npc_name)
@@ -279,6 +281,8 @@ async def reply_as_npcs(npc_names: list[str], trigger_message: discord.Message):
         f"Kontext der letzten Nachrichten:\n{context}\n\n"
         f"Antworte auf folgende Nachricht. Übernehme dabei nacheinander die Rollen der folgenden Charaktere in einer einzigen Nachricht."
         f" Beginne jede Antwort mit dem jeweiligen Namen:\n{names_line}\n"
+        f"Wenn es für einen der Charaktere keinen Sinn ergibt zu antworten, lass ihn aus.\n"
+        f"Sollte es bei garkeinen Charakter Sinn ergeben, antworte ausschließlich mit [none]."
         f"Nachricht von {USER_LIST[str(trigger_message.author)]}: {trigger_message.content}"
     )
     await generate_and_send(input_text, npc_names)
