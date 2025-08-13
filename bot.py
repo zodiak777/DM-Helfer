@@ -41,7 +41,6 @@ class LevelFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
         return record.levelno == self.level
 
-
 formatter = logging.Formatter("%(asctime)s %(levelname)s:%(name)s:%(message)s")
 root_logger = logging.getLogger()
 root_logger.setLevel(LOG_LEVEL)
@@ -320,6 +319,18 @@ async def hourly_post():
         logger.debug('Quiet hour')
         return
 
+    if random.random() < 0.01:
+        data = load_prompt_data()
+        events = data.get("events", [])
+        if events:
+            event = random.choice(events)
+            await generate_and_send(event.get("info", ""), event.get("npc"))
+            events.remove(event)
+            save_prompt_data(data)
+            refresh_data()
+            logger.info('Special event executed for NPC %s', event.get('npc'))
+            return
+    
     if random.random() > POST_PROBABILITY:
         logger.debug('No post this hour')
         return
