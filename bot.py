@@ -165,6 +165,7 @@ web.init_web(
 
 current_weather = "Undetermined"
 weather_roll_date = None
+event_probability = 0.01
 
 def get_random_npc():
     return random.choice(NPC_LIST)
@@ -307,19 +308,19 @@ async def reply_as_npcs(npc_names: list[str], trigger_message: discord.Message):
 async def hourly_post():
     logger.debug('Hourly post task triggered')
     now = datetime.now()
-    global current_weather, weather_roll_date
+    global current_weather, weather_roll_date, event_probability
 
     if now.hour == DAILY_WEATHER_HOUR and (weather_roll_date != now.date()):
         current_weather = roll_weather()
         weather_roll_date = now.date()
         await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
-        logger.info('Daily weather determined: %s', current_weather)
+        logger.info('Daily weather determined: %s' (event chance %.0f%%)', current_weather, event_probability * 100)
 
     if SILENT_HOURS_START <= now.hour <= SILENT_HOURS_END:
         logger.debug('Quiet hour')
         return
 
-    if random.random() < 0.01:
+    if random.random() < event_probability:
         data = load_prompt_data()
         events = data.get("events", [])
         if events:
@@ -328,7 +329,8 @@ async def hourly_post():
             events.remove(event)
             save_prompt_data(data)
             refresh_data()
-            logger.info('Special event executed for NPC %s', event.get('npc'))
+            event_probability = 0.01
+            logger.info('Special event executed for NPC %s. Event chance reset to 1%%', event.get('npc'))
             return
     
     if random.random() > POST_PROBABILITY:
