@@ -5,7 +5,6 @@ from flask import Flask, request, session, redirect, url_for, render_template
 
 app = Flask(__name__)
 
-# These globals will be configured via init_web
 CONFIG = {}
 GET_PROMPT_DATA = None
 SAVE_PROMPT_DATA = None
@@ -31,7 +30,6 @@ def init_web(config, get_prompt_data, save_prompt_data, refresh_data,
     logger = log
     app.secret_key = secret_key
 
-
 def login_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -39,7 +37,6 @@ def login_required(func):
             return redirect(url_for("login"))
         return func(*args, **kwargs)
     return wrapper
-
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -53,18 +50,15 @@ def login():
         logger.warning("Failed login attempt for user %s", username)
     return render_template("login.html")
 
-
 @app.route("/logout")
 def logout():
     session.pop("logged_in", None)
     logger.info("User logged out")
     return redirect(url_for("login"))
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/prompt_data")
 @login_required
@@ -73,6 +67,7 @@ def prompt_data():
     npc_count = len(data.get("npc", []))
     player_count = len(data.get("spieler", []))
     animal_count = len(data.get("tiere", []))
+    event_count = len(data.get("events", []))
     user_count = len(data.get("user_list", {}))
     core_text = "vorhanden" if data.get("core") else "nicht gesetzt"
     world_text = "vorhanden" if data.get("welt") else "nicht gesetzt"
@@ -81,11 +76,11 @@ def prompt_data():
         npc_count=npc_count,
         player_count=player_count,
         animal_count=animal_count,
+        event_count=event_count,
         user_count=user_count,
         core_text=core_text,
         world_text=world_text,
     )
-
 
 @app.route("/npcs")
 @login_required
@@ -93,7 +88,6 @@ def npc_list():
     data = GET_PROMPT_DATA()
     all_npcs = sorted(n["name"].split()[0] for n in data.get("npc", []))
     return render_template("npc_list.html", npcs=all_npcs)
-
 
 @app.route("/add", methods=["GET", "POST"])
 @login_required
@@ -111,7 +105,6 @@ def add_npc():
             logger.info("Added NPC %s", name)
             return redirect(url_for("npc_list"))
     return render_template("add_npc.html")
-
 
 @app.route("/edit/<name>", methods=["GET", "POST"])
 @login_required
@@ -138,7 +131,6 @@ def edit_npc(name):
         long=long_text,
     )
 
-
 @app.route("/delete/<name>")
 @login_required
 def delete_npc(name):
@@ -150,14 +142,12 @@ def delete_npc(name):
     logger.info("Deleted NPC %s", name)
     return redirect(url_for("npc_list"))
 
-
 @app.route("/players")
 @login_required
 def player_list():
     data = GET_PROMPT_DATA()
     players = sorted(p["name"] for p in data.get("spieler", []))
     return render_template("player_list.html", players=players)
-
 
 @app.route("/players/add", methods=["GET", "POST"])
 @login_required
@@ -174,7 +164,6 @@ def add_player():
             logger.info("Added player %s", name)
             return redirect(url_for("player_list"))
     return render_template("add_player.html")
-
 
 @app.route("/players/edit/<name>", methods=["GET", "POST"])
 @login_required
@@ -193,7 +182,6 @@ def edit_player(name):
         return redirect(url_for("player_list"))
     return render_template("edit_player.html", name=name, info=pl.get("info", ""))
 
-
 @app.route("/players/delete/<name>")
 @login_required
 def delete_player(name):
@@ -205,14 +193,12 @@ def delete_player(name):
     logger.info("Deleted player %s", name)
     return redirect(url_for("player_list"))
 
-
 @app.route("/animals")
 @login_required
 def animal_list():
     data = GET_PROMPT_DATA()
     animals = sorted(t["name"] for t in data.get("tiere", []))
     return render_template("animal_list.html", animals=animals)
-
 
 @app.route("/animals/add", methods=["GET", "POST"])
 @login_required
@@ -229,7 +215,6 @@ def add_animal():
             logger.info("Added animal %s", name)
             return redirect(url_for("animal_list"))
     return render_template("add_animal.html")
-
 
 @app.route("/animals/edit/<name>", methods=["GET", "POST"])
 @login_required
@@ -248,7 +233,6 @@ def edit_animal(name):
         return redirect(url_for("animal_list"))
     return render_template("edit_animal.html", name=name, info=an.get("info", ""))
 
-
 @app.route("/animals/delete/<name>")
 @login_required
 def delete_animal(name):
@@ -260,6 +244,40 @@ def delete_animal(name):
     logger.info("Deleted animal %s", name)
     return redirect(url_for("animal_list"))
 
+@app.route("/events")
+@login_required
+def event_list():
+    data = GET_PROMPT_DATA()
+    events = data.get("events", [])
+    return render_template("event_list.html", events=events)
+
+@app.route("/events/add", methods=["GET", "POST"])
+@login_required
+def add_event():
+    if request.method == "POST":
+        npc = request.form.get("npc", "").strip()
+        info = request.form.get("info", "").strip()
+        if npc and info:
+            data = GET_PROMPT_DATA()
+            lst = data.setdefault("events", [])
+            lst.append({"npc": npc, "info": info})
+            SAVE_PROMPT_DATA(data)
+            REFRESH_DATA()
+            logger.info("Added event for NPC %s", npc)
+            return redirect(url_for("event_list"))
+    return render_template("add_event.html")
+
+@app.route("/events/delete/<int:index>")
+@login_required
+def delete_event(index):
+    data = GET_PROMPT_DATA()
+    events = data.get("events", [])
+    if 0 <= index < len(events):
+        removed = events.pop(index)
+        SAVE_PROMPT_DATA(data)
+        REFRESH_DATA()
+        logger.info("Deleted event for NPC %s", removed.get("npc"))
+    return redirect(url_for("event_list"))
 
 @app.route("/world", methods=["GET", "POST"])
 @login_required
@@ -276,7 +294,6 @@ def edit_world():
         welt=data.get("welt", ""),
     )
 
-
 @app.route("/core", methods=["GET", "POST"])
 @login_required
 def edit_core():
@@ -292,7 +309,6 @@ def edit_core():
         core=data.get("core", ""),
     )
 
-
 @app.route("/weather", methods=["GET", "POST"])
 @login_required
 def edit_weather():
@@ -307,14 +323,12 @@ def edit_weather():
     weather = {int(k): v for k, v in data.get("weather_table", {}).items()}
     return render_template("edit_weather.html", weather=weather)
 
-
 @app.route("/users")
 @login_required
 def user_list():
     data = GET_PROMPT_DATA()
     users = data.get("user_list", {})
     return render_template("user_list.html", users=users)
-
 
 @app.route("/users/add", methods=["GET", "POST"])
 @login_required
@@ -330,7 +344,6 @@ def add_user():
             logger.info("Added user %s with character %s", username, character)
             return redirect(url_for("user_list"))
     return render_template("add_user.html")
-
 
 @app.route("/users/edit/<username>", methods=["GET", "POST"])
 @login_required
@@ -348,7 +361,6 @@ def edit_user(username):
         return redirect(url_for("user_list"))
     return render_template("edit_user.html", username=username, character=users[username])
 
-
 @app.route("/users/delete/<username>")
 @login_required
 def delete_user(username):
@@ -358,7 +370,6 @@ def delete_user(username):
     SAVE_PROMPT_DATA(data)
     REFRESH_DATA()
     return redirect(url_for("user_list"))
-
 
 @app.route("/logs")
 @login_required
@@ -375,7 +386,6 @@ def view_logs():
         selected_log=selected_log,
         log_content=content,
     )
-
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
