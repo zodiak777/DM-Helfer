@@ -32,6 +32,15 @@
     <div class="col">
         <div class="card bg-secondary text-light h-100">
             <div class="card-body">
+                <h5 class="card-title">Events</h5>
+                <p class="card-text">{{ event_count }} vorhanden</p>
+                <a class="btn btn-primary" href="{{ url_for('event_list') }}">Verwalten</a>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-secondary text-light h-100">
+            <div class="card-body">
                 <h5 class="card-title">User</h5>
                 <p class="card-text">{{ user_count }} vorhanden</p>
                 <a class="btn btn-primary" href="{{ url_for('user_list') }}">Verwalten</a>
