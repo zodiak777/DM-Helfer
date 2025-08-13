@@ -314,7 +314,7 @@ async def hourly_post():
         current_weather = roll_weather()
         weather_roll_date = now.date()
         await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
-        logger.info('Daily weather determined: %s' (event chance %.0f%%)', current_weather, event_probability * 100)
+        logger.info('Daily weather determined: %s (event chance %.0f%%)', current_weather, event_probability * 100)
 
     if SILENT_HOURS_START <= now.hour <= SILENT_HOURS_END:
         logger.debug('Quiet hour')
