@@ -1,0 +1,16 @@
+{% extends 'layout.html' %}
+{% block content %}
+<a class="btn btn-secondary mb-3" href="{{ url_for('event_list') }}">Zurück</a>
+<h1 class="mb-4">Neues Special Event</h1>
+<form method="post">
+    <div class="mb-3">
+        <label for="npc" class="form-label">NPC</label>
+        <input class="form-control" id="npc" name="npc">
+    </div>
+    <div class="mb-3">
+        <label for="info" class="form-label">Beschreibung</label>
+        <textarea class="form-control" id="info" name="info" rows="5"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Speichern</button>
+</form>
+{% endblock %}
