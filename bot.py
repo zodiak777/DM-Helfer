@@ -208,6 +208,23 @@ async def force_command(interaction: discord.Interaction):
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
     await interaction.followup.send("Nachricht gepostet.", ephemeral=True)
 
+@tree.command(name="regie", description="Regieanweisungen geben")
+@app_commands.describe(anweisung="Was soll geschehen?")
+async def regie_command(interaction: discord.Interaction, anweisung: str):
+    if not any(role.name == "Weltenschmied" for role in getattr(interaction.user, "roles", [])):
+        await interaction.response.send_message(
+            "Nur Weltenschmiede können diese Funktion nutzen.", ephemeral=True
+        )
+        return
+    await interaction.response.defer(ephemeral=True)
+    logger.info("Regie command triggered by %s: %s", interaction.user, anweisung)
+    npcs_in_text = sorted({npc for npc in NPC_LIST if npc.lower() in anweisung.lower()})
+    if npcs_in_text:
+        await generate_and_send(anweisung, npcs_in_text)
+    else:
+        await generate_and_send(anweisung)
+    await interaction.followup.send("Regieanweisung ausgeführt.", ephemeral=True)
+
 def load_npc_extension(npc_name: str) -> str:
     base = npc_name.split()[0]
     for npc in PROMPT_DATA.get("npc", []):
