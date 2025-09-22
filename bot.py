@@ -23,6 +23,7 @@ LOG_LEVEL = getattr(logging, CONFIG["logging"]["log_level"].upper(), logging.INF
 PROMPT_DATA_PATH = os.path.join(BASE_DIR, CONFIG["data_paths"]["prompt_data"])
 OPENAI_MODEL = CONFIG["openai"]["model"]
 OPENAI_MAX_TOKENS = CONFIG["openai"]["max_tokens"]
+UPDATE_FILE_PATH = os.path.join(BASE_DIR, "update.txt")
 
 TASK_INTERVAL_HOURS = CONFIG["discord"]["task_interval_hours"]
 DAILY_WEATHER_HOUR = CONFIG["discord"]["daily_weather_hour"]
@@ -199,6 +200,7 @@ async def on_ready():
     await tree.sync()
     hourly_post.start()
     refresh_data()
+    await process_update_file()
     logger.info("Logged in as %s", client.user)
 
 @client.event
@@ -374,6 +376,75 @@ async def hourly_post():
 
     npc = get_random_npc()
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
+
+async def process_update_file():
+    if not os.path.isfile(UPDATE_FILE_PATH):
+        logger.debug("No update file found at startup")
+        return
+
+    logger.info("Processing update file at %s", UPDATE_FILE_PATH)
+    try:
+        with open(UPDATE_FILE_PATH, "r", encoding="utf-8") as update_file:
+            update_content = update_file.read().strip()
+    except OSError:
+        logger.error("Failed to read update file", exc_info=True)
+        return
+
+    if not update_content:
+        logger.warning("Update file was empty; deleting without posting")
+        try:
+            os.remove(UPDATE_FILE_PATH)
+        except OSError:
+            logger.error("Failed to delete empty update file", exc_info=True)
+        return
+
+    system_prompt = (
+        "Du bist ein hilfsbereiter Assistent, der Neuigkeiten für einen Discord-Server "
+        "freundlich zusammenfasst."
+    )
+    user_prompt = (
+        "Formuliere aus den folgenden Informationen eine kurze Update-News in deinen eigenen "
+        "Worten. Schreibe auf Deutsch, strukturiert und positiv:\n"
+        f"{update_content}\n\n"
+        "Halte dich an maximal fünf Sätze."
+    )
+
+    try:
+        response = openai_client.responses.create(
+            model=OPENAI_MODEL,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            reasoning={"effort": "low"},
+            max_output_tokens=OPENAI_MAX_TOKENS,
+        )
+        update_message = response.output_text.strip()
+    except Exception:
+        logger.error("Failed to generate update news", exc_info=True)
+        return
+
+    if not update_message:
+        logger.warning("Generated update news was empty; keeping update file for manual review")
+        return
+
+    channel = client.get_channel(CHANNEL_ID)
+    if channel is None:
+        logger.error("Could not resolve channel %s to post update", CHANNEL_ID)
+        return
+
+    try:
+        await channel.send(update_message)
+        logger.info("Posted update news to channel %s", CHANNEL_ID)
+    except Exception:
+        logger.error("Failed to send update news to channel", exc_info=True)
+        return
+
+    try:
+        os.remove(UPDATE_FILE_PATH)
+        logger.info("Deleted update file after posting news")
+    except OSError:
+        logger.error("Failed to delete update file after posting", exc_info=True)
 
 def run_flask():
     web.app.run(host=WEB_HOST, port=WEB_PORT)
