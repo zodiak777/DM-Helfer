@@ -85,10 +85,14 @@ if OPENAI_API_KEY is None:
 if CHANNEL_ID is None:
     raise RuntimeError('CHANNEL_ID environment variable is not set')
 
+if PING_CHANNEL_ID is None:
+    raise RuntimeError('PING_CHANNEL_ID environment variable is not set')
+
 if WEB_USERNAME is None or WEB_PASSWORD is None:
     raise RuntimeError('WEB_USERNAME or WEB_PASSWORD is not set')
 
 CHANNEL_ID = int(CHANNEL_ID)
+PING_CHANNEL_ID = int(PING_CHANNEL_ID)
 
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 logger.debug('OpenAI client initialized')
@@ -379,6 +383,8 @@ async def hourly_post():
     await generate_and_send(f'Schreibe eine kurze Szene mit dem NPC {npc}.', npc)
 
 async def process_update_file():
+    await client.wait_until_ready()
+    
     if not os.path.isfile(UPDATE_FILE_PATH):
         logger.debug("No update file found at startup")
         return
@@ -436,12 +442,15 @@ async def process_update_file():
 
     channel = client.get_channel(PING_CHANNEL_ID)
     if channel is None:
-        logger.error("Could not resolve channel %s to post update", PING_CHANNEL_ID)
-        return
+        try:
+            channel = await client.fetch_channel(PING_CHANNEL_ID)
+        except Exception:
+            logger.error("Could not resolve channel %s to post update", PING_CHANNEL_ID, exc_info=True)
+            return
 
     try:
         await channel.send(update_message)
-        logger.info("Posted update news to channel %s", CHANNEL_ID)
+        logger.info("Posted update news to channel %s", PING_CHANNEL_ID)
     except Exception:
         logger.error("Failed to send update news to channel", exc_info=True)
         return
