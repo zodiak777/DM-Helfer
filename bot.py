@@ -185,6 +185,8 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
+    if message.content.lower().startswith(">>")
+        return
     if message.author == client.user:
         return
     if message.author.bot:
