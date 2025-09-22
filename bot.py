@@ -407,7 +407,8 @@ async def process_update_file():
         "höchstens fünf Sätze."
     )
     user_prompt = (
-        "Fasse die folgenden Notizen zu einer kurzen Update-News zusammen. Formuliere sie "
+        "Fasse die folgenden Notizen zu einer kurzen Update-News zusammen. "
+        "Schreibe bei der begrüßung @everyone mit dazu. Formuliere sie "
         "klar auf Deutsch, bewahre dabei den etablierten Stil, bleibe bei den gegebenen "
         "Informationen und sprich in der Ich-Perspektive:\n"
         f"{update_content}"
