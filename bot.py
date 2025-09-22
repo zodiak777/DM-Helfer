@@ -205,7 +205,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message: discord.Message):
-    if message.content.lower().startswith(">>")
+    if message.content.lower().startswith(">>"):
         return
     if message.author == client.user:
         return
@@ -399,14 +399,18 @@ async def process_update_file():
         return
 
     system_prompt = (
-        "Du bist ein hilfsbereiter Assistent, der Neuigkeiten für einen Discord-Server "
-        "freundlich zusammenfasst."
+        f"{PRE_PROMPT}\n\n"
+        "Du bleibst dieselbe erzählerische Stimme und verfasst nun eine verständliche, "
+        "freundliche Update-News für den Discord-Server. Halte den Ton atmosphärisch, "
+        "bleib im Präsens und erzähle konsequent aus der Ich-Perspektive, als würdest du "
+        "selbst deine neuen Möglichkeiten vorstellen. Vermeide Listen und halte dich an "
+        "höchstens fünf Sätze."
     )
     user_prompt = (
-        "Formuliere aus den folgenden Informationen eine kurze Update-News in deinen eigenen "
-        "Worten. Schreibe auf Deutsch, strukturiert und positiv:\n"
-        f"{update_content}\n\n"
-        "Halte dich an maximal fünf Sätze."
+        "Fasse die folgenden Notizen zu einer kurzen Update-News zusammen. Formuliere sie "
+        "klar auf Deutsch, bewahre dabei den etablierten Stil, bleibe bei den gegebenen "
+        "Informationen und sprich in der Ich-Perspektive:\n"
+        f"{update_content}"
     )
 
     try:
