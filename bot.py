@@ -69,6 +69,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 CHANNEL_ID = os.getenv('CHANNEL_ID')
+PING_CHANNEL_ID = os.getenv('PING_CHANNEL_ID')
 WEB_USERNAME = os.getenv('WEB_USERNAME')
 WEB_PASSWORD = os.getenv('WEB_PASSWORD')
 FLASK_SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'secret')
@@ -433,9 +434,9 @@ async def process_update_file():
         logger.warning("Generated update news was empty; keeping update file for manual review")
         return
 
-    channel = client.get_channel(CHANNEL_ID)
+    channel = client.get_channel(PING_CHANNEL_ID)
     if channel is None:
-        logger.error("Could not resolve channel %s to post update", CHANNEL_ID)
+        logger.error("Could not resolve channel %s to post update", PING_CHANNEL_ID)
         return
 
     try:
