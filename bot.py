@@ -2,6 +2,7 @@ import os
 import random
 import logging
 import json
+import re
 from datetime import datetime
 from threading import Thread
 from dotenv import load_dotenv
@@ -170,6 +171,23 @@ event_probability = 0.01
 def get_random_npc():
     return random.choice(NPC_LIST)
 
+def _npc_mentioned(npc: str, content: str) -> bool:
+    pattern = re.compile(rf"\b{re.escape(npc)}\b", re.IGNORECASE)
+    for match in pattern.finditer(content):
+        start = match.start()
+        i = start - 1
+        while i >= 0 and content[i].isspace():
+            i -= 1
+        if i >= 0 and content[i] == "~":
+            continue
+        return True
+    return False
+
+
+def find_npcs_in_text(content: str) -> list[str]:
+    found = {npc for npc in NPC_LIST if _npc_mentioned(npc, content)}
+    return sorted(found)
+
 def roll_weather():
     roll = random.randint(1, 20)
     desc = WEATHER_TABLE.get(roll, "Unknown")
@@ -196,7 +214,7 @@ async def on_message(message: discord.Message):
     if message.channel.id != CHANNEL_ID:
         return
     content_lower = message.content.lower()
-    npcs_in_message = sorted({npc for npc in NPC_LIST if npc.lower() in content_lower})
+    npcs_in_message = find_npcs_in_text(message.content)
     if len(npcs_in_message) == 1:
         await reply_as_npc(npcs_in_message[0], message)
     elif len(npcs_in_message) > 1:
@@ -220,7 +238,7 @@ async def regie_command(interaction: discord.Interaction, anweisung: str):
         return
     await interaction.response.defer(ephemeral=True)
     logger.info("Regie command triggered by %s: %s", interaction.user, anweisung)
-    npcs_in_text = sorted({npc for npc in NPC_LIST if npc.lower() in anweisung.lower()})
+    npcs_in_text = find_npcs_in_text(message.content)
     if npcs_in_text:
         await generate_and_send(anweisung, npcs_in_text)
     else:
