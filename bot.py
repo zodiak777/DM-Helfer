@@ -245,7 +245,7 @@ async def regie_command(interaction: discord.Interaction, anweisung: str):
         return
     await interaction.response.defer(ephemeral=True)
     logger.info("Regie command triggered by %s: %s", interaction.user, anweisung)
-    npcs_in_text = find_npcs_in_text(message.content)
+    npcs_in_text = find_npcs_in_text(anweisung)
     if npcs_in_text:
         await generate_and_send(anweisung, npcs_in_text)
     else:
