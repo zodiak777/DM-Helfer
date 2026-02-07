@@ -5,6 +5,12 @@
     <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
 <form method="post">
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="daily_weather_description_enabled" name="daily_weather_description_enabled" {% if daily_weather_description_enabled %}checked{% endif %}>
+        <label class="form-check-label" for="daily_weather_description_enabled">
+            Tägliche Wetterbeschreibung senden
+        </label>
+    </div>
     <div class="mb-3">
         <label for="config" class="form-label">config.json</label>
         <textarea class="form-control" id="config" name="config" rows="20">{{ config }}</textarea>
