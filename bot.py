@@ -340,7 +340,8 @@ async def hourly_post():
     if now.hour == DAILY_WEATHER_HOUR and (weather_roll_date != now.date()):
         current_weather = roll_weather()
         weather_roll_date = now.date()
-        await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
+        if CONFIG["discord"].get("daily_weather_description_enabled", True):
+            await generate_and_send('Beschreibe das aktuelle Wetter. Verwende dabei KEINE NPCs')
         logger.info('Daily weather determined: %s (event chance %.0f%%)', current_weather, event_probability * 100)
 
     if SILENT_HOURS_START <= now.hour <= SILENT_HOURS_END:
