@@ -13,6 +13,7 @@
   "discord": {
     "task_interval_hours": 1,
     "daily_weather_hour": 8,
+    "daily_weather_description_enabled": true,
     "silent_hours": [
       1,
       8
