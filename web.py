@@ -394,11 +394,15 @@ def settings():
     error = None
     if request.method == "POST":
         raw = request.form.get("config", "")
+        weather_description_enabled = bool(request.form.get("daily_weather_description_enabled"))
         try:
             new_config = json.loads(raw)
             with open(config_path, "r", encoding="utf-8") as f:
                 current = json.load(f)
             new_config["webserver"] = current.get("webserver", {})
+            new_config.setdefault("discord", {})
+            new_config["discord"]["daily_weather_description_enabled"] = weather_description_enabled
+
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(new_config, f, ensure_ascii=False, indent=2)
             global CONFIG
@@ -410,5 +414,12 @@ def settings():
     with open(config_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
     cfg.pop("webserver", None)
+    daily_weather_description_enabled = cfg.get("discord", {}).get("daily_weather_description_enabled", True)
     cfg_json = json.dumps(cfg, ensure_ascii=False, indent=2)
-    return render_template("settings.html", config=cfg_json, error=error)
+    return render_template(
+        "settings.html",
+        config=cfg_json,
+        error=error,
+        daily_weather_description_enabled=daily_weather_description_enabled,
+    )
+
